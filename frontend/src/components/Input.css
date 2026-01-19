@@ -1,0 +1,136 @@
+.input-wrapper {
+    position: relative;
+    margin-bottom: var(--spacing-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.input-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-gray-400);
+    font-size: 1.25rem;
+    z-index: 1;
+    transition: color var(--transition-fast);
+}
+
+.input-focused .input-icon {
+    color: var(--color-primary);
+}
+
+.input-field {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.input-field input {
+    width: 100%;
+    padding: 1rem;
+    padding-top: 1.5rem;
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
+    background: var(--color-white);
+    border: 2px solid var(--color-gray-300);
+    border-radius: var(--radius-lg);
+    outline: none;
+    transition: all var(--transition-base);
+    color: var(--color-gray-900);
+}
+
+.input-wrapper .input-icon~.input-field input {
+    padding-left: 3rem;
+}
+
+.input-field input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.input-field input:disabled {
+    background: var(--color-gray-100);
+    cursor: not-allowed;
+}
+
+.input-field label {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-gray-500);
+    font-size: 1rem;
+    pointer-events: none;
+    transition: all var(--transition-base);
+    background: var(--color-white);
+    padding: 0 0.25rem;
+}
+
+.input-wrapper .input-icon~.input-field label {
+    left: 3rem;
+}
+
+.input-field label.label-float,
+.input-field input:focus~label {
+    top: 0;
+    left: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.input-wrapper .input-icon~.input-field label.label-float,
+.input-wrapper .input-icon~.input-field input:focus~label {
+    left: 2.75rem;
+}
+
+.required-mark {
+    color: var(--color-error);
+    margin-left: 0.125rem;
+}
+
+/* Password Toggle */
+.password-toggle {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.25rem;
+    padding: 0.25rem;
+    opacity: 0.6;
+    transition: opacity var(--transition-fast);
+    z-index: 2;
+}
+
+.password-toggle:hover {
+    opacity: 1;
+}
+
+/* Error State */
+.input-error .input-field input {
+    border-color: var(--color-error);
+}
+
+.input-error .input-field input:focus {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.error-message {
+    position: absolute;
+    bottom: -1.5rem;
+    left: 0;
+    font-size: 0.875rem;
+    color: var(--color-error);
+    animation: fadeInUp 0.3s ease-out;
+}
+
+/* Animation for input focus */
+.input-field input:focus {
+    animation: glow 2s ease-in-out infinite;
+}
