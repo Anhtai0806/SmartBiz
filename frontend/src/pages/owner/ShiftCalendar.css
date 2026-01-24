@@ -1,0 +1,326 @@
+.shift-calendar-container {
+    padding: 20px;
+    background: #f8f9fa;
+    min-height: 100vh;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-header h2 {
+    font-size: 28px;
+    color: #1a1a1a;
+    margin: 0;
+}
+
+.calendar-filters {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.calendar-filters label {
+    font-weight: 500;
+    color: #333;
+    font-size: 14px;
+}
+
+.staff-filter {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    min-width: 200px;
+    cursor: pointer;
+    background: white;
+}
+
+.staff-filter:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+
+.staff-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 20px;
+    background: white;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+}
+
+.legend-name {
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+}
+
+/* Calendar styling */
+.rbc-calendar {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    height: auto !important;
+}
+
+/* Make time view expand to show all slots */
+.rbc-time-view {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: visible !important;
+}
+
+.rbc-time-content {
+    border-top: 1px solid #e0e0e0;
+    overflow-y: visible !important;
+    max-height: none !important;
+    height: auto !important;
+}
+
+.rbc-time-column {
+    min-height: auto !important;
+}
+
+.rbc-day-slot {
+    position: relative;
+}
+
+.rbc-timeslot-group {
+    min-height: 60px;
+}
+
+.rbc-header {
+    padding: 12px 0;
+    font-weight: 600;
+    font-size: 14px;
+    color: #1a1a1a;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.rbc-today {
+    background-color: #e3f2fd;
+}
+
+.rbc-event {
+    padding: 4px 8px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.rbc-event:hover {
+    opacity: 1 !important;
+    cursor: pointer;
+    transform: scale(1.02);
+    transition: all 0.2s;
+}
+
+/* Toolbar styling */
+.rbc-toolbar {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 16px;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    position: relative;
+    z-index: 10;
+}
+
+/* Button groups */
+.rbc-btn-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    position: relative;
+    z-index: 11;
+}
+
+/* All toolbar buttons */
+.rbc-toolbar button {
+    padding: 10px 18px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #333;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer !important;
+    transition: all 0.25s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    min-width: 80px;
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 12;
+}
+
+.rbc-toolbar button:hover {
+    background: #f8f9fa;
+    border-color: #2563eb;
+    color: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.15);
+}
+
+.rbc-toolbar button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Active view button */
+.rbc-toolbar button.rbc-active {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: white;
+    border-color: #2563eb;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.rbc-toolbar button.rbc-active:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    transform: translateY(-1px);
+}
+
+/* Navigation buttons (Previous/Next) - First button group */
+.rbc-btn-group:first-child button {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+    border-color: #6366f1;
+    font-weight: 700;
+    min-width: 100px;
+    font-size: 15px;
+}
+
+.rbc-btn-group:first-child button:hover {
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+    border-color: #4f46e5;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+}
+
+.rbc-btn-group:first-child button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
+}
+
+/* Today button - middle button in first group */
+.rbc-btn-group:first-child button:nth-child(2) {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border-color: #10b981;
+    font-weight: 700;
+    min-width: 110px;
+}
+
+.rbc-btn-group:first-child button:nth-child(2):hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    border-color: #059669;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+/* Toolbar label (current date/month) */
+.rbc-toolbar-label {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1a1a;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-radius: 8px;
+    border: 2px solid #bae6fd;
+    min-width: 200px;
+    text-align: center;
+}
+
+.rbc-month-view {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.rbc-day-bg {
+    border-left: 1px solid #e0e0e0;
+}
+
+.rbc-month-row {
+    border-top: 1px solid #e0e0e0;
+}
+
+.rbc-off-range-bg {
+    background: #fafafa;
+}
+
+.rbc-time-header {
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.rbc-current-time-indicator {
+    background-color: #e74c3c;
+    height: 2px;
+}
+
+.loading {
+    text-align: center;
+    padding: 60px 20px;
+    font-size: 18px;
+    color: #666;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .calendar-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .calendar-filters {
+        width: 100%;
+    }
+
+    .staff-filter {
+        width: 100%;
+    }
+
+    .staff-legend {
+        flex-direction: column;
+    }
+
+    .rbc-toolbar {
+        flex-direction: column;
+    }
+
+    .rbc-calendar {
+        padding: 12px;
+    }
+}

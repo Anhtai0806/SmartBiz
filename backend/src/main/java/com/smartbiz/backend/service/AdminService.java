@@ -1,15 +1,20 @@
 package com.smartbiz.backend.service;
 
 import com.smartbiz.backend.dto.DashboardStatsResponse;
+import com.smartbiz.backend.dto.MenuCategoryRequest;
+import com.smartbiz.backend.dto.MenuCategoryResponse;
 import com.smartbiz.backend.dto.StoreResponse;
 import com.smartbiz.backend.dto.UpdateUserStatusRequest;
 import com.smartbiz.backend.dto.UserResponse;
+import com.smartbiz.backend.entity.MenuCategory;
 import com.smartbiz.backend.entity.Role;
 import com.smartbiz.backend.entity.Status;
 import com.smartbiz.backend.entity.Store;
 import com.smartbiz.backend.entity.User;
 import com.smartbiz.backend.exception.InvalidRoleException;
 import com.smartbiz.backend.exception.ResourceNotFoundException;
+import com.smartbiz.backend.repository.MenuCategoryRepository;
+import com.smartbiz.backend.repository.MenuItemRepository;
 import com.smartbiz.backend.repository.StoreRepository;
 import com.smartbiz.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +33,8 @@ public class AdminService {
 
     private final UserRepository userRepository;
     private final StoreRepository storeRepository;
+    private final MenuCategoryRepository menuCategoryRepository;
+    private final MenuItemRepository menuItemRepository;
 
     /**
      * Get all users in the system
@@ -153,6 +160,97 @@ public class AdminService {
     }
 
     /**
+     * Get all menu categories across all stores - ADMIN only
+     * 
+     * @return List of all categories
+     */
+    public List<MenuCategoryResponse> getAllCategories() {
+        List<MenuCategory> categories = menuCategoryRepository.findAll();
+        return categories.stream()
+                .map(this::convertToCategoryResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get categories for a specific store - ADMIN only
+     * 
+     * @param storeId Store ID
+     * @return List of categories for the store
+     */
+    public List<MenuCategoryResponse> getCategoriesByStoreId(Long storeId) {
+        // Verify store exists
+        storeRepository.findById(storeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + storeId));
+
+        List<MenuCategory> categories = menuCategoryRepository.findByStoreId(storeId);
+        return categories.stream()
+                .map(this::convertToCategoryResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Create a new menu category - ADMIN only
+     * 
+     * @param request Category creation request
+     * @return Created category response
+     */
+    @Transactional
+    public MenuCategoryResponse createCategory(MenuCategoryRequest request) {
+        // Verify store exists
+        Store store = storeRepository.findById(request.getStoreId())
+                .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + request.getStoreId()));
+
+        MenuCategory category = MenuCategory.builder()
+                .store(store)
+                .name(request.getName())
+                .build();
+
+        MenuCategory saved = menuCategoryRepository.save(category);
+        return convertToCategoryResponse(saved);
+    }
+
+    /**
+     * Update a menu category - ADMIN only
+     * 
+     * @param categoryId Category ID to update
+     * @param request    Category update request
+     * @return Updated category response
+     */
+    @Transactional
+    public MenuCategoryResponse updateCategory(Long categoryId, MenuCategoryRequest request) {
+        MenuCategory category = menuCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
+
+        // Update category name
+        category.setName(request.getName());
+
+        // If store is being changed, verify new store exists
+        if (!category.getStore().getId().equals(request.getStoreId())) {
+            Store newStore = storeRepository.findById(request.getStoreId())
+                    .orElseThrow(
+                            () -> new ResourceNotFoundException("Store not found with ID: " + request.getStoreId()));
+            category.setStore(newStore);
+        }
+
+        MenuCategory updated = menuCategoryRepository.save(category);
+        return convertToCategoryResponse(updated);
+    }
+
+    /**
+     * Delete a menu category - ADMIN only
+     * Note: This will cascade delete all menu items in the category
+     * 
+     * @param categoryId Category ID to delete
+     */
+    @Transactional
+    public void deleteCategory(Long categoryId) {
+        MenuCategory category = menuCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
+
+        menuCategoryRepository.delete(category);
+    }
+
+    /**
      * Convert User entity to UserResponse DTO
      */
     private UserResponse convertToUserResponse(User user) {
@@ -180,6 +278,19 @@ public class AdminService {
                 .staffCount(store.getStaffMembers() != null ? store.getStaffMembers().size() : 0)
                 .tableCount(store.getTables() != null ? store.getTables().size() : 0)
                 .createdAt(store.getCreatedAt())
+                .build();
+    }
+
+    /**
+     * Convert MenuCategory entity to MenuCategoryResponse DTO
+     */
+    private MenuCategoryResponse convertToCategoryResponse(MenuCategory category) {
+        return MenuCategoryResponse.builder()
+                .id(category.getId())
+                .storeId(category.getStore().getId())
+                .storeName(category.getStore().getName())
+                .name(category.getName())
+                .itemCount(menuItemRepository.countByCategoryId(category.getId()))
                 .build();
     }
 }

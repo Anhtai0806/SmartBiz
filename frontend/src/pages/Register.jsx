@@ -75,8 +75,8 @@ const Register = () => {
 
         if (!formData.phone) {
             newErrors.phone = 'Số điện thoại không được để trống';
-        } else if (!/^[0-9]{10}$/.test(formData.phone)) {
-            newErrors.phone = 'Số điện thoại phải có 10 chữ số';
+        } else if (!/^[0-9]{10,11}$/.test(formData.phone)) {
+            newErrors.phone = 'Số điện thoại phải có 10-11 chữ số';
         }
 
         if (!formData.password) {
@@ -109,13 +109,46 @@ const Register = () => {
 
         setIsLoading(true);
 
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            // Import the register API function
+            const { register } = await import('../api/authApi');
+
+            // Call backend API
+            const response = await register({
+                fullName: formData.fullName,
+                email: formData.email,
+                phone: formData.phone,
+                password: formData.password
+            });
+
+            // Store user data in localStorage
+            localStorage.setItem('token', response.token);
+            localStorage.setItem('role', response.role);
+            localStorage.setItem('email', response.email);
+            localStorage.setItem('fullName', response.fullName || '');
+
+            // Role-based redirection
+            switch (response.role) {
+                case 'ADMIN':
+                    navigate('/admin/dashboard');
+                    break;
+                case 'BUSINESS_OWNER':
+                    navigate('/owner/dashboard');
+                    break;
+                case 'STAFF':
+                case 'CASHIER':
+                    navigate('/staff/dashboard');
+                    break;
+                default:
+                    navigate('/');
+            }
+        } catch (error) {
+            setErrors({
+                general: error.message || 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.'
+            });
+        } finally {
             setIsLoading(false);
-            console.log('Register data:', formData);
-            // Navigate to login or dashboard after successful registration
-            // navigate('/login');
-        }, 1500);
+        }
     };
 
     return (
@@ -135,6 +168,12 @@ const Register = () => {
                         <h1 className="register-title">Đăng ký</h1>
                         <p className="register-subtitle">Tạo tài khoản mới để bắt đầu sử dụng SmartBiz</p>
                     </div>
+
+                    {errors.general && (
+                        <div className="error-message">
+                            {errors.general}
+                        </div>
+                    )}
 
                     <form onSubmit={handleSubmit} className="register-form">
                         <Input

@@ -64,6 +64,27 @@ public class User implements UserDetails {
     @ToString.Exclude
     private List<StaffShift> staffShifts = new ArrayList<>();
 
+    // Two-Factor Authentication fields
+    @Column(name = "two_factor_enabled")
+    @Builder.Default
+    private Boolean twoFactorEnabled = false;
+
+    @Column(name = "two_factor_secret", length = 32)
+    private String twoFactorSecret;
+
+    @Column(name = "backup_codes", columnDefinition = "TEXT")
+    private String backupCodes;
+
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
+
+    @Column(name = "failed_login_attempts")
+    @Builder.Default
+    private Integer failedLoginAttempts = 0;
+
+    @Column(name = "account_locked_until")
+    private LocalDateTime accountLockedUntil;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -89,7 +110,10 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        if (accountLockedUntil == null) {
+            return true;
+        }
+        return LocalDateTime.now().isAfter(accountLockedUntil);
     }
 
     @Override

@@ -7,6 +7,8 @@ import Index from './pages/Index';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import BusinessOwnerDashboard from './pages/owner/BusinessOwnerDashboard';
+import CashierDashboard from './pages/cashier/CashierDashboard';
 import './App.css';
 
 function App() {
@@ -18,27 +20,21 @@ function App() {
           <Route path="/" element={
             <>
               <Navbar />
-              <main className="main-content">
-                <Index />
-              </main>
+              <Index />
               <Footer />
             </>
           } />
           <Route path="/login" element={
             <>
               <Navbar />
-              <main className="main-content">
-                <Login />
-              </main>
+              <Login />
               <Footer />
             </>
           } />
           <Route path="/register" element={
             <>
               <Navbar />
-              <main className="main-content">
-                <Register />
-              </main>
+              <Register />
               <Footer />
             </>
           } />
@@ -50,15 +46,21 @@ function App() {
             </PrivateRoute>
           } />
 
-          {/* Placeholder routes for other roles */}
-          <Route path="/owner/dashboard" element={
+          {/* Business Owner routes - protected */}
+          <Route path="/owner/*" element={
             <PrivateRoute requiredRole="BUSINESS_OWNER">
-              <div style={{ padding: '40px', textAlign: 'center' }}>
-                <h1>Business Owner Dashboard</h1>
-                <p>Coming soon...</p>
-              </div>
+              <BusinessOwnerDashboard />
             </PrivateRoute>
           } />
+
+          {/* Cashier routes - protected */}
+          <Route path="/cashier/*" element={
+            <PrivateRoute requiredRole="CASHIER">
+              <CashierDashboard />
+            </PrivateRoute>
+          } />
+
+          {/* Staff routes - placeholder */}
           <Route path="/staff/dashboard" element={
             <PrivateRoute>
               <div style={{ padding: '40px', textAlign: 'center' }}>

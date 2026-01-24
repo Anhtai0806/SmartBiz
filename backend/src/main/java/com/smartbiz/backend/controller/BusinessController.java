@@ -1,6 +1,8 @@
 package com.smartbiz.backend.controller;
 
 import com.smartbiz.backend.dto.*;
+import com.smartbiz.backend.dto.MenuCategoryRequest;
+import com.smartbiz.backend.dto.MenuCategoryResponse;
 import com.smartbiz.backend.entity.User;
 import com.smartbiz.backend.service.BusinessOwnerService;
 import jakarta.validation.Valid;
@@ -84,12 +86,194 @@ public class BusinessController {
     }
 
     /**
-     * Business dashboard
+     * Get dashboard statistics
      */
     @GetMapping("/dashboard")
     @PreAuthorize("hasRole('BUSINESS_OWNER')")
-    public ResponseEntity<String> getBusinessDashboard() {
-        return ResponseEntity.ok("Welcome to Business Dashboard");
+    public ResponseEntity<DashboardStatsResponse> getDashboard() {
+        User currentUser = getCurrentUser();
+        DashboardStatsResponse stats = businessOwnerService.getDashboardStats(currentUser.getId());
+        return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * Get store details with staff and menu items
+     */
+    @GetMapping("/stores/{storeId}")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<StoreDetailResponse> getStoreDetails(@PathVariable Long storeId) {
+        User currentUser = getCurrentUser();
+        StoreDetailResponse store = businessOwnerService.getStoreDetails(currentUser.getId(), storeId);
+        return ResponseEntity.ok(store);
+    }
+
+    /**
+     * Get staff for a specific store
+     */
+    @GetMapping("/stores/{storeId}/staff")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<List<UserResponse>> getStoreStaff(@PathVariable Long storeId) {
+        User currentUser = getCurrentUser();
+        List<UserResponse> staff = businessOwnerService.getStoreStaff(currentUser.getId(), storeId);
+        return ResponseEntity.ok(staff);
+    }
+
+    /**
+     * Remove staff from a store
+     */
+    @DeleteMapping("/stores/{storeId}/staff/{staffId}")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<Void> removeStaffFromStore(
+            @PathVariable Long storeId,
+            @PathVariable UUID staffId) {
+        User currentUser = getCurrentUser();
+        businessOwnerService.removeStaffFromStore(currentUser.getId(), storeId, staffId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Create menu item for a store
+     */
+    @PostMapping("/stores/{storeId}/menu-items")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<MenuItemResponse> createMenuItem(
+            @PathVariable Long storeId,
+            @Valid @RequestBody MenuItemRequest request) {
+        User currentUser = getCurrentUser();
+        MenuItemResponse menuItem = businessOwnerService.createMenuItem(currentUser.getId(), storeId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(menuItem);
+    }
+
+    /**
+     * Update menu item
+     */
+    @PutMapping("/menu-items/{itemId}")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<MenuItemResponse> updateMenuItem(
+            @PathVariable Long itemId,
+            @Valid @RequestBody MenuItemRequest request) {
+        User currentUser = getCurrentUser();
+        MenuItemResponse menuItem = businessOwnerService.updateMenuItem(currentUser.getId(), itemId, request);
+        return ResponseEntity.ok(menuItem);
+    }
+
+    /**
+     * Delete menu item
+     */
+    @DeleteMapping("/menu-items/{itemId}")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<Void> deleteMenuItem(@PathVariable Long itemId) {
+        User currentUser = getCurrentUser();
+        businessOwnerService.deleteMenuItem(currentUser.getId(), itemId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Get all categories for current business owner
+     */
+    @GetMapping("/categories")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<List<MenuCategoryResponse>> getAllCategories() {
+        User currentUser = getCurrentUser();
+        List<MenuCategoryResponse> categories = businessOwnerService.getAllCategories(currentUser.getId());
+        return ResponseEntity.ok(categories);
+    }
+
+    /**
+     * Create category for a store
+     */
+    @PostMapping("/categories")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<MenuCategoryResponse> createCategory(@Valid @RequestBody MenuCategoryRequest request) {
+        User currentUser = getCurrentUser();
+        MenuCategoryResponse category = businessOwnerService.createCategory(currentUser.getId(), request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(category);
+    }
+
+    /**
+     * Update category
+     */
+    @PutMapping("/categories/{categoryId}")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<MenuCategoryResponse> updateCategory(
+            @PathVariable Long categoryId,
+            @Valid @RequestBody MenuCategoryRequest request) {
+        User currentUser = getCurrentUser();
+        MenuCategoryResponse category = businessOwnerService.updateCategory(currentUser.getId(), categoryId, request);
+        return ResponseEntity.ok(category);
+    }
+
+    /**
+     * Delete category
+     * Note: This will cascade delete all menu items in the category
+     */
+    @DeleteMapping("/categories/{categoryId}")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long categoryId) {
+        User currentUser = getCurrentUser();
+        businessOwnerService.deleteCategory(currentUser.getId(), categoryId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Get categories for a store
+     */
+    @GetMapping("/stores/{storeId}/categories")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<List<MenuCategoryResponse>> getStoreCategories(@PathVariable Long storeId) {
+        User currentUser = getCurrentUser();
+        List<MenuCategoryResponse> categories = businessOwnerService.getStoreCategories(currentUser.getId(), storeId);
+        return ResponseEntity.ok(categories);
+    }
+
+    /**
+     * Get shift templates for a store
+     */
+    @GetMapping("/stores/{storeId}/shift-templates")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<List<WorkShiftResponse>> getShiftTemplates(@PathVariable Long storeId) {
+        User currentUser = getCurrentUser();
+        List<WorkShiftResponse> templates = businessOwnerService.getShiftTemplates(currentUser.getId(), storeId);
+        return ResponseEntity.ok(templates);
+    }
+
+    /**
+     * Create shift template for a store
+     */
+    @PostMapping("/stores/{storeId}/shift-templates")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<WorkShiftResponse> createShiftTemplate(
+            @PathVariable Long storeId,
+            @Valid @RequestBody WorkShiftRequest request) {
+        User currentUser = getCurrentUser();
+        // Ensure storeId in path matches request
+        request.setStoreId(storeId);
+        WorkShiftResponse template = businessOwnerService.createShiftTemplate(currentUser.getId(), request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(template);
+    }
+
+    /**
+     * Update shift template
+     */
+    @PutMapping("/shift-templates/{shiftId}")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<WorkShiftResponse> updateShiftTemplate(
+            @PathVariable Long shiftId,
+            @Valid @RequestBody WorkShiftRequest request) {
+        User currentUser = getCurrentUser();
+        WorkShiftResponse template = businessOwnerService.updateShiftTemplate(currentUser.getId(), shiftId, request);
+        return ResponseEntity.ok(template);
+    }
+
+    /**
+     * Delete shift template
+     */
+    @DeleteMapping("/shift-templates/{shiftId}")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<Void> deleteShiftTemplate(@PathVariable Long shiftId) {
+        User currentUser = getCurrentUser();
+        businessOwnerService.deleteShiftTemplate(currentUser.getId(), shiftId);
+        return ResponseEntity.noContent().build();
     }
 
     /**

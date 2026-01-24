@@ -43,6 +43,7 @@ const AdminDashboard = () => {
                         <span className="nav-icon">🏪</span>
                         {isSidebarOpen && <span>Stores</span>}
                     </Link>
+
                 </nav>
             </aside>
 
@@ -68,6 +69,7 @@ const AdminDashboard = () => {
                         <Route path="/dashboard" element={<AdminDashboardHome />} />
                         <Route path="/users" element={<AdminUsers />} />
                         <Route path="/stores" element={<AdminStores />} />
+
                     </Routes>
                 </div>
             </div>

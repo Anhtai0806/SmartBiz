@@ -41,6 +41,10 @@ public class StaffShift {
     @Column(nullable = false)
     private LocalTime endTime;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "work_shift_id")
+    private WorkShift workShift; // Optional: reference to shift template
+
     @OneToMany(mappedBy = "shift")
     @Builder.Default
     @ToString.Exclude

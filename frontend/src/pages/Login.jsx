@@ -7,7 +7,7 @@ import './Login.css';
 const Login = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
-        email: '',
+        username: '',
         password: '',
         rememberMe: false
     });
@@ -29,10 +29,8 @@ const Login = () => {
     const validateForm = () => {
         const newErrors = {};
 
-        if (!formData.email) {
-            newErrors.email = 'Email không được để trống';
-        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            newErrors.email = 'Email không hợp lệ';
+        if (!formData.username) {
+            newErrors.username = 'Email hoặc số điện thoại không được để trống';
         }
 
         if (!formData.password) {
@@ -61,7 +59,7 @@ const Login = () => {
 
             // Call backend API
             const response = await login({
-                username: formData.email,
+                username: formData.username,
                 password: formData.password
             });
 
@@ -79,8 +77,10 @@ const Login = () => {
                 case 'BUSINESS_OWNER':
                     navigate('/owner/dashboard');
                     break;
-                case 'STAFF':
                 case 'CASHIER':
+                    navigate('/cashier/dashboard');
+                    break;
+                case 'STAFF':
                     navigate('/staff/dashboard');
                     break;
                 default:
@@ -121,12 +121,12 @@ const Login = () => {
 
                     <form onSubmit={handleSubmit} className="login-form">
                         <Input
-                            label="Email"
-                            type="email"
-                            name="email"
-                            value={formData.email}
+                            label="Email hoặc Số điện thoại"
+                            type="text"
+                            name="username"
+                            value={formData.username}
                             onChange={handleChange}
-                            error={errors.email}
+                            error={errors.username}
                             icon="📧"
                             required
                         />

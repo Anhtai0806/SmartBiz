@@ -32,5 +32,8 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
                         @Param("storeId") Long storeId,
                         @Param("paymentMethod") PaymentMethod paymentMethod);
 
+        @Query("SELECT i FROM Invoice i WHERE i.order.table.store.id = :storeId")
+        List<Invoice> findByOrderTableStoreId(@Param("storeId") Long storeId);
+
         boolean existsByOrderId(Long orderId);
 }

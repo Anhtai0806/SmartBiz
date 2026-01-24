@@ -1,11 +1,11 @@
 .register-page {
-    min-height: 100vh;
+    height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: var(--spacing-2xl) var(--spacing-lg);
+    padding: var(--spacing-lg);
     position: relative;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 .register-background {

@@ -15,8 +15,13 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
 
     List<MenuItem> findByCategoryIdAndStatus(Long categoryId, Boolean status);
 
+    Integer countByCategoryId(Long categoryId);
+
     @Query("SELECT mi FROM MenuItem mi WHERE mi.category.store.id = :storeId")
     List<MenuItem> findByStoreId(@Param("storeId") Long storeId);
+
+    @Query("SELECT mi FROM MenuItem mi WHERE mi.category.store.id = :storeId")
+    List<MenuItem> findByCategoryStoreId(@Param("storeId") Long storeId);
 
     @Query("SELECT mi FROM MenuItem mi WHERE mi.category.store.id = :storeId AND mi.status = true")
     List<MenuItem> findActiveByStoreId(@Param("storeId") Long storeId);

@@ -35,4 +35,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("storeId") Long storeId,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
+
+    @Query("SELECT o FROM Order o WHERE o.table.id = :tableId AND o.status IN ('NEW', 'PROCESSING')")
+    java.util.Optional<Order> findActiveOrderByTableId(@Param("tableId") Long tableId);
 }
