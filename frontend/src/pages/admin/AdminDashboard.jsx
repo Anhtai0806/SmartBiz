@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import AdminDashboardHome from './AdminDashboardHome';
 import AdminUsers from './AdminUsers';
-import AdminStores from './AdminStores';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -37,13 +36,8 @@ const AdminDashboard = () => {
                     </Link>
                     <Link to="/admin/users" className="nav-item">
                         <span className="nav-icon">👥</span>
-                        {isSidebarOpen && <span>Users</span>}
+                        {isSidebarOpen && <span>Business Owners</span>}
                     </Link>
-                    <Link to="/admin/stores" className="nav-item">
-                        <span className="nav-icon">🏪</span>
-                        {isSidebarOpen && <span>Stores</span>}
-                    </Link>
-
                 </nav>
             </aside>
 
@@ -68,8 +62,6 @@ const AdminDashboard = () => {
                         <Route path="/" element={<AdminDashboardHome />} />
                         <Route path="/dashboard" element={<AdminDashboardHome />} />
                         <Route path="/users" element={<AdminUsers />} />
-                        <Route path="/stores" element={<AdminStores />} />
-
                     </Routes>
                 </div>
             </div>

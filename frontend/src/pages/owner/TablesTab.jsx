@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getStoreTables, createTable, deleteTable } from '../../api/businessOwnerApi';
+import { getStoreTables, createTable, deleteTable, bulkCreateTables } from '../../api/businessOwnerApi';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import Input from '../../components/Input';
@@ -8,13 +8,23 @@ import './TablesTab.css';
 
 const TablesTab = ({ storeId, tables: initialTables, onUpdate }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
     const [formData, setFormData] = useState({
-        name: ''
+        tableNumber: ''
+    });
+    const [bulkFormData, setBulkFormData] = useState({
+        count: '',
+        startNumber: ''
     });
 
     const handleOpenModal = () => {
-        setFormData({ name: '' });
+        setFormData({ tableNumber: '' });
         setIsModalOpen(true);
+    };
+
+    const handleOpenBulkModal = () => {
+        setBulkFormData({ count: '', startNumber: '' });
+        setIsBulkModalOpen(true);
     };
 
     const handleSubmit = async (e) => {
@@ -22,7 +32,7 @@ const TablesTab = ({ storeId, tables: initialTables, onUpdate }) => {
         try {
             await createTable({
                 storeId: storeId,
-                name: formData.name,
+                name: 'Bàn ' + formData.tableNumber,
                 status: 'EMPTY'
             });
             setIsModalOpen(false);
@@ -30,6 +40,22 @@ const TablesTab = ({ storeId, tables: initialTables, onUpdate }) => {
         } catch (err) {
             console.error('Error creating table:', err);
             alert('Không thể tạo bàn: ' + (err.response?.data?.message || err.message || 'Lỗi không xác định'));
+        }
+    };
+
+    const handleBulkSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            await bulkCreateTables({
+                storeId: storeId,
+                count: parseInt(bulkFormData.count),
+                startNumber: bulkFormData.startNumber ? parseInt(bulkFormData.startNumber) : null
+            });
+            setIsBulkModalOpen(false);
+            onUpdate();
+        } catch (err) {
+            console.error('Error bulk creating tables:', err);
+            alert('Không thể tạo bàn hàng loạt: ' + (err.response?.data?.message || err.message || 'Lỗi không xác định'));
         }
     };
 
@@ -64,7 +90,10 @@ const TablesTab = ({ storeId, tables: initialTables, onUpdate }) => {
         <div className="tables-tab">
             <div className="tab-header">
                 <h3>Danh sách Bàn</h3>
-                <Button onClick={handleOpenModal}>➕ Thêm bàn</Button>
+                <div className="header-buttons">
+                    <Button onClick={handleOpenBulkModal} variant="outline">🔢 Tạo bàn tự động</Button>
+                    <Button onClick={handleOpenModal}>➕ Thêm bàn</Button>
+                </div>
             </div>
 
             {initialTables && initialTables.length > 0 ? (
@@ -102,18 +131,55 @@ const TablesTab = ({ storeId, tables: initialTables, onUpdate }) => {
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Thêm bàn mới">
                 <form onSubmit={handleSubmit} className="table-form">
                     <Input
-                        label="Tên bàn"
+                        label="Số bàn"
                         type="text"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="Ví dụ: Bàn 1, Bàn VIP 1"
+                        value={formData.tableNumber}
+                        onChange={(e) => setFormData({ ...formData, tableNumber: e.target.value })}
+                        placeholder="Nhập số bàn (vd: 1, 2, VIP 1)"
                         required
                     />
+                    <p className="table-preview">Tên bàn sẽ là: <strong>Bàn {formData.tableNumber || '...'}</strong></p>
                     <div className="form-actions">
                         <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
                             Hủy
                         </Button>
                         <Button type="submit">Tạo mới</Button>
+                    </div>
+                </form>
+            </Modal>
+
+            <Modal isOpen={isBulkModalOpen} onClose={() => setIsBulkModalOpen(false)} title="Tạo bàn tự động">
+                <form onSubmit={handleBulkSubmit} className="table-form">
+                    <Input
+                        label="Số lượng bàn cần tạo"
+                        type="number"
+                        min="1"
+                        value={bulkFormData.count}
+                        onChange={(e) => setBulkFormData({ ...bulkFormData, count: e.target.value })}
+                        placeholder="Nhập số lượng (vd: 10)"
+                        required
+                    />
+                    <Input
+                        label="Bắt đầu từ số (tùy chọn)"
+                        type="number"
+                        min="1"
+                        value={bulkFormData.startNumber}
+                        onChange={(e) => setBulkFormData({ ...bulkFormData, startNumber: e.target.value })}
+                        placeholder="Để trống để tự động tiếp tục"
+                    />
+                    {bulkFormData.count && (
+                        <p className="bulk-preview">
+                            Sẽ tạo: <strong>{bulkFormData.count} bàn</strong>
+                            {bulkFormData.startNumber && (
+                                <> từ <strong>Bàn {bulkFormData.startNumber}</strong> đến <strong>Bàn {parseInt(bulkFormData.startNumber) + parseInt(bulkFormData.count) - 1}</strong></>
+                            )}
+                        </p>
+                    )}
+                    <div className="form-actions">
+                        <Button type="button" variant="outline" onClick={() => setIsBulkModalOpen(false)}>
+                            Hủy
+                        </Button>
+                        <Button type="submit">Tạo bàn</Button>
                     </div>
                 </form>
             </Modal>

@@ -15,6 +15,26 @@
     color: var(--text-primary);
 }
 
+.header-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.table-preview,
+.bulk-preview {
+    padding: 12px;
+    background: #f3f4f6;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #374151;
+    margin-top: 8px;
+}
+
+.table-preview strong,
+.bulk-preview strong {
+    color: #3b82f6;
+}
+
 /* Grid Layout for Tables */
 .tables-grid {
     display: grid;

@@ -67,7 +67,11 @@ const Login = () => {
             localStorage.setItem('token', response.token);
             localStorage.setItem('role', response.role);
             localStorage.setItem('email', response.email);
+            localStorage.setItem('userId', response.id);
             localStorage.setItem('fullName', response.fullName || '');
+            if (response.storeId) {
+                localStorage.setItem('storeId', response.storeId);
+            }
 
             // Role-based redirection
             switch (response.role) {

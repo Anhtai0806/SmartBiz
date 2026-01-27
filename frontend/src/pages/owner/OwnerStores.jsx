@@ -4,6 +4,7 @@ import { getStores, createStore } from '../../api/businessOwnerApi';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import Input from '../../components/Input';
+import StatusBadge from '../../components/StatusBadge';
 import './OwnerStores.css';
 
 const OwnerStores = () => {
@@ -12,7 +13,11 @@ const OwnerStores = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
-        address: ''
+        address: '',
+        phone: '',
+        taxRate: '',
+        openingTime: '',
+        closingTime: ''
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -36,7 +41,14 @@ const OwnerStores = () => {
     };
 
     const handleOpenModal = () => {
-        setFormData({ name: '', address: '' });
+        setFormData({
+            name: '',
+            address: '',
+            phone: '',
+            taxRate: '',
+            openingTime: '',
+            closingTime: ''
+        });
         setIsModalOpen(true);
     };
 
@@ -101,6 +113,9 @@ const OwnerStores = () => {
                         <h3>{store.name}</h3>
                         <p className="store-address">{store.address}</p>
                         <div className="store-footer">
+                            <StatusBadge status={store.status === 'ACTIVE' ? 'success' : 'danger'}>
+                                {store.status === 'ACTIVE' ? 'Đang hoạt động' : 'Tạm ngưng'}
+                            </StatusBadge>
                             <span className="store-date">
                                 Tạo: {new Date(store.createdAt).toLocaleDateString('vi-VN')}
                             </span>
@@ -125,6 +140,41 @@ const OwnerStores = () => {
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                         required
                     />
+                    <Input
+                        label="Số điện thoại"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    />
+                    <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
+                        <div style={{ flex: 1 }}>
+                            <Input
+                                label="Thuế VAT (%)"
+                                type="number"
+                                value={formData.taxRate}
+                                onChange={(e) => setFormData({ ...formData, taxRate: e.target.value })}
+                                step="0.01"
+                            />
+                        </div>
+                    </div>
+                    <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
+                        <div style={{ flex: 1 }}>
+                            <Input
+                                label="Giờ mở cửa"
+                                type="time"
+                                value={formData.openingTime}
+                                onChange={(e) => setFormData({ ...formData, openingTime: e.target.value })}
+                            />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <Input
+                                label="Giờ đóng cửa"
+                                type="time"
+                                value={formData.closingTime}
+                                onChange={(e) => setFormData({ ...formData, closingTime: e.target.value })}
+                            />
+                        </div>
+                    </div>
                     <div className="form-actions">
                         <Button type="button" variant="outline" onClick={handleCloseModal}>
                             Hủy

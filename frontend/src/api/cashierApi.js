@@ -82,4 +82,83 @@ export const getInvoicesByStore = async (storeId) => {
     return response.data;
 };
 
+// Cashier Dashboard APIs
+export const getCashierDashboardStats = async (storeId) => {
+    const response = await api.get(`/cashier/dashboard/stats`, {
+        params: { storeId }
+    });
+    return response.data;
+};
+
+export const getTodayOrders = async (storeId) => {
+    const response = await api.get(`/cashier/orders/today`, {
+        params: { storeId }
+    });
+    return response.data;
+};
+
+export const getPendingPaymentOrders = async (storeId) => {
+    const response = await api.get(`/cashier/orders/pending-payment`, {
+        params: { storeId }
+    });
+    return response.data;
+};
+
+export const getTablesWithOrders = async (storeId) => {
+    const response = await api.get(`/cashier/tables/with-orders`, {
+        params: { storeId }
+    });
+    return response.data;
+};
+
+export const createCashierInvoice = async (invoiceData) => {
+    const response = await api.post('/cashier/invoices', invoiceData);
+    return response.data;
+};
+
+export const getStoreQR = async (storeId) => {
+    const response = await api.get(`/cashier/qr-payment/store/${storeId}`);
+    return response.data;
+};
+
+// Order Item Management APIs
+export const removeOrderItem = async (orderId, itemId) => {
+    const response = await api.delete(`/orders/${orderId}/items/${itemId}`);
+    return response.data;
+};
+
+export const updateOrderItem = async (orderId, itemId, quantity) => {
+    const response = await api.put(`/orders/${orderId}/items/${itemId}`, {
+        quantity
+    });
+    return response.data;
+};
+
+// Menu APIs
+export const getMenuItemsByStore = async (storeId) => {
+    const response = await api.get(`/menu-items/store/${storeId}`);
+    return response.data;
+};
+
+// Schedule APIs
+export const getStoreStaff = async (storeId) => {
+    const response = await api.get('/cashier/staff', {
+        params: { storeId }
+    });
+    return response.data;
+};
+
+export const getShiftsByDateRange = async (storeId, startDate, endDate) => {
+    const token = localStorage.getItem('token');
+    // Direct call to ShiftController
+    const response = await axios.get(`http://localhost:8080/api/shifts/store/${storeId}/calendar`, {
+        params: { startDate, endDate },
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    return response.data;
+};
+
 export default api;

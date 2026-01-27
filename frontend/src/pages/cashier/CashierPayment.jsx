@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getTablesWithOrders, getOrderByTable, createCashierInvoice, getStoreQR } from '../../api/cashierApi';
 import './CashierPayment.css';
 
 const CashierPayment = () => {
@@ -10,6 +11,12 @@ const CashierPayment = () => {
     const [paymentMethod, setPaymentMethod] = useState('CASH');
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
+    const [error, setError] = useState(null);
+
+    // QR Payment State
+    const [showQRModal, setShowQRModal] = useState(false);
+    const [qrData, setQrData] = useState(null);
+    const [qrLoading, setQrLoading] = useState(false);
 
     useEffect(() => {
         fetchTablesWithOrders();
@@ -17,50 +24,33 @@ const CashierPayment = () => {
 
     const fetchTablesWithOrders = async () => {
         try {
-            // TODO: Replace with actual API call
-            // Fetch tables with WAITING_PAYMENT status
-            const mockTables = [
-                { id: 3, name: 'Bàn 3', orderId: 2 },
-                { id: 7, name: 'Bàn 7', orderId: 5 },
-                { id: 10, name: 'Bàn 10', orderId: 8 }
-            ];
+            setLoading(true);
+            setError(null);
 
-            setTables(mockTables);
+            const storeId = localStorage.getItem('storeId') || '1';
+            const tablesData = await getTablesWithOrders(storeId);
+            setTables(tablesData);
             setLoading(false);
         } catch (error) {
             console.error('Error fetching tables:', error);
+            setError('Không thể tải danh sách bàn. Vui lòng thử lại.');
             setLoading(false);
         }
     };
 
-    const fetchOrderDetails = async (orderId) => {
+    const fetchOrderDetails = async (tableId) => {
         try {
-            // TODO: Replace with actual API call
-            // const response = await fetch(`/api/orders/table/${tableId}`);
-            // const data = await response.json();
-
-            // Mock data
-            const mockOrder = {
-                id: orderId,
-                items: [
-                    { id: 1, name: 'Cà phê sữa', quantity: 2, price: 25000 },
-                    { id: 2, name: 'Trà sữa', quantity: 1, price: 30000 },
-                    { id: 3, name: 'Bánh ngọt', quantity: 3, price: 35000 }
-                ],
-                subtotal: 185000,
-                tax: 18500,
-                total: 203500
-            };
-
-            setOrderDetails(mockOrder);
+            const orderData = await getOrderByTable(tableId);
+            setOrderDetails(orderData);
         } catch (error) {
             console.error('Error fetching order details:', error);
+            setOrderDetails(null);
         }
     };
 
     const handleTableSelect = (table) => {
         setSelectedTable(table);
-        fetchOrderDetails(table.orderId);
+        fetchOrderDetails(table.id);
     };
 
     const formatCurrency = (amount) => {
@@ -70,23 +60,37 @@ const CashierPayment = () => {
         }).format(amount);
     };
 
-    const handlePayment = async () => {
+    const handlePaymentClick = async () => {
         if (!selectedTable || !orderDetails) return;
 
+        if (paymentMethod === 'TRANSFER') {
+            // Fetch QR Code and Show Modal
+            setQrLoading(true);
+            try {
+                const storeId = localStorage.getItem('storeId') || '1';
+                const data = await getStoreQR(storeId);
+                setQrData(data);
+                setShowQRModal(true);
+            } catch (err) {
+                console.error('Error fetching QR:', err);
+                alert('Không thể tải mã QR cửa hàng. Vui lòng kiểm tra lại.');
+            } finally {
+                setQrLoading(false);
+            }
+        } else {
+            // Direct Cash Payment
+            await processInvoiceCreation();
+        }
+    };
+
+    const processInvoiceCreation = async () => {
         setProcessing(true);
         try {
-            // TODO: Replace with actual API call
-            // await fetch('/api/invoices', {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify({
-            //         orderId: orderDetails.id,
-            //         paymentMethod: paymentMethod
-            //     })
-            // });
-
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Create invoice via API
+            await createCashierInvoice({
+                orderId: orderDetails.id,
+                paymentMethod: paymentMethod
+            });
 
             alert(`Thanh toán thành công cho ${selectedTable.name}!`);
 
@@ -94,24 +98,33 @@ const CashierPayment = () => {
             setSelectedTable(null);
             setOrderDetails(null);
             setPaymentMethod('CASH');
+            setShowQRModal(false);
 
             // Refresh tables list
-            fetchTablesWithOrders();
+            await fetchTablesWithOrders();
         } catch (error) {
             console.error('Error processing payment:', error);
-            alert('Có lỗi xảy ra khi thanh toán!');
+            alert('Có lỗi xảy ra khi thanh toán. Vui lòng thử lại!');
         } finally {
             setProcessing(false);
         }
     };
 
     const handlePrintInvoice = () => {
-        // TODO: Implement print functionality
         window.print();
     };
 
     if (loading) {
-        return <div className="loading">Đang tải...</div>;
+        return <div className="loading">Đang tải dữ liệu...</div>;
+    }
+
+    if (error) {
+        return (
+            <div className="error-container">
+                <p className="error-message">{error}</p>
+                <button onClick={fetchTablesWithOrders} className="retry-btn">Thử lại</button>
+            </div>
+        );
     }
 
     return (
@@ -156,32 +169,24 @@ const CashierPayment = () => {
                             <div className="order-summary">
                                 <h3>Chi tiết đơn hàng - {selectedTable.name}</h3>
                                 <div className="items-list">
-                                    {orderDetails.items.map(item => (
+                                    {orderDetails.items && orderDetails.items.map(item => (
                                         <div key={item.id} className="summary-item">
                                             <div className="item-info">
-                                                <span className="item-name">{item.name}</span>
+                                                <span className="item-name">{item.menuItemName}</span>
                                                 <span className="item-qty">x{item.quantity}</span>
                                             </div>
                                             <span className="item-price">
-                                                {formatCurrency(item.price * item.quantity)}
+                                                {formatCurrency(item.subtotal)}
                                             </span>
                                         </div>
                                     ))}
                                 </div>
 
                                 <div className="summary-totals">
-                                    <div className="total-row">
-                                        <span>Tạm tính:</span>
-                                        <span>{formatCurrency(orderDetails.subtotal)}</span>
-                                    </div>
-                                    <div className="total-row">
-                                        <span>Thuế (10%):</span>
-                                        <span>{formatCurrency(orderDetails.tax)}</span>
-                                    </div>
                                     <div className="total-row final">
                                         <strong>Tổng cộng:</strong>
                                         <strong className="final-amount">
-                                            {formatCurrency(orderDetails.total)}
+                                            {formatCurrency(orderDetails.totalAmount)}
                                         </strong>
                                     </div>
                                 </div>
@@ -210,7 +215,7 @@ const CashierPayment = () => {
                                             onChange={(e) => setPaymentMethod(e.target.value)}
                                         />
                                         <span className="method-icon">💳</span>
-                                        <span className="method-label">Chuyển khoản</span>
+                                        <span className="method-label">Mã QR / Chuyển khoản</span>
                                     </label>
                                 </div>
                             </div>
@@ -224,10 +229,10 @@ const CashierPayment = () => {
                                 </button>
                                 <button
                                     className="btn-pay"
-                                    onClick={handlePayment}
-                                    disabled={processing}
+                                    onClick={handlePaymentClick}
+                                    disabled={processing || qrLoading}
                                 >
-                                    {processing ? 'Đang xử lý...' : '✓ Xác nhận thanh toán'}
+                                    {processing ? 'Đang xử lý...' : qrLoading ? 'Đang tải QR...' : 'Thanh toán & Xuất hóa đơn'}
                                 </button>
                             </div>
                         </>
@@ -236,6 +241,45 @@ const CashierPayment = () => {
                     )}
                 </div>
             </div>
+
+            {/* QR Payment Modal */}
+            {showQRModal && (
+                <div className="modal-overlay" onClick={() => setShowQRModal(false)}>
+                    <div className="modal-content qr-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Thanh toán qua Mã QR</h3>
+                            <button className="close-btn" onClick={() => setShowQRModal(false)}>✕</button>
+                        </div>
+                        <div className="modal-body qr-body">
+                            {qrData ? (
+                                <div className="qr-container">
+                                    <img
+                                        src={`data:${qrData.imageType};base64,${qrData.imageData}`}
+                                        alt="Store QR Code"
+                                        className="qr-image"
+                                    />
+                                    <p className="qr-instruction">Vui lòng quét mã QR trên để thanh toán.</p>
+                                    <p className="qr-amount">Số tiền: <strong>{orderDetails ? formatCurrency(orderDetails.totalAmount) : ''}</strong></p>
+                                </div>
+                            ) : (
+                                <div className="no-qr">
+                                    <p>Chưa có mã QR thanh toán nào được thiết lập cho cửa hàng này.</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn-secondary" onClick={() => setShowQRModal(false)}>Hủy</button>
+                            <button
+                                className="btn-primary"
+                                onClick={processInvoiceCreation}
+                                disabled={processing}
+                            >
+                                {processing ? 'Đang xác nhận...' : 'Đã thanh toán - Xuất Hóa Đơn'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

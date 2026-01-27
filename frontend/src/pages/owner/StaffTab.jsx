@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { createStaff, assignStaffToStore, removeStaffFromStore, updateStaffStatus } from '../../api/businessOwnerApi';
+import { createStaff, assignStaffToStore, removeStaffFromStore, updateStaffStatus, updateStaff } from '../../api/businessOwnerApi';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import Input from '../../components/Input';
@@ -8,30 +8,51 @@ import './StaffTab.css';
 
 const StaffTab = ({ storeId, staffMembers, onUpdate }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingStaff, setEditingStaff] = useState(null);
     const [formData, setFormData] = useState({
         fullName: '',
         email: '',
         password: '',
-        role: 'STAFF'
+        role: 'STAFF',
+        salaryType: 'MONTHLY',
+        salaryAmount: ''
     });
 
-    const handleOpenModal = () => {
-        setFormData({ fullName: '', email: '', password: '', role: 'STAFF' });
+    const handleOpenModal = (staff = null) => {
+        if (staff) {
+            setEditingStaff(staff);
+            // Password is not filled for security, and it's optional in update
+            setFormData({
+                fullName: staff.fullName,
+                email: staff.email,
+                password: '',
+                role: staff.role,
+                salaryType: staff.salaryType || 'MONTHLY',
+                salaryAmount: staff.salaryAmount || ''
+            });
+        } else {
+            setEditingStaff(null);
+            setFormData({ fullName: '', email: '', password: '', role: 'STAFF', salaryType: 'MONTHLY', salaryAmount: '' });
+        }
         setIsModalOpen(true);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            // Create staff
-            const newStaff = await createStaff(formData);
-            // Assign to store
-            await assignStaffToStore(storeId, newStaff.id);
+            if (editingStaff) {
+                await updateStaff(editingStaff.id, formData);
+            } else {
+                // Create staff
+                const newStaff = await createStaff(formData);
+                // Assign to store
+                await assignStaffToStore(storeId, newStaff.id);
+            }
             setIsModalOpen(false);
             onUpdate();
         } catch (err) {
-            console.error('Error creating staff:', err);
-            alert('Không thể tạo nhân viên: ' + (err.message || 'Lỗi không xác định'));
+            console.error('Error saving staff:', err);
+            alert('Không thể lưu thông tin nhân viên: ' + (err.message || 'Lỗi không xác định'));
         }
     };
 
@@ -62,7 +83,7 @@ const StaffTab = ({ storeId, staffMembers, onUpdate }) => {
         <div className="staff-tab">
             <div className="tab-header">
                 <h3>Danh sách Nhân viên</h3>
-                <Button onClick={handleOpenModal}>➕ Thêm nhân viên</Button>
+                <Button onClick={() => handleOpenModal()}>➕ Thêm nhân viên</Button>
             </div>
 
             {staffMembers && staffMembers.length > 0 ? (
@@ -73,6 +94,7 @@ const StaffTab = ({ storeId, staffMembers, onUpdate }) => {
                                 <th>Họ tên</th>
                                 <th>Email</th>
                                 <th>Vai trò</th>
+                                <th>Mức lương</th>
                                 <th>Trạng thái</th>
                                 <th>Hành động</th>
                             </tr>
@@ -88,11 +110,29 @@ const StaffTab = ({ storeId, staffMembers, onUpdate }) => {
                                         </span>
                                     </td>
                                     <td>
+                                        {staff.salaryAmount ? (
+                                            <span>
+                                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(staff.salaryAmount)}
+                                                <small className="text-muted">/{staff.salaryType === 'HOURLY' ? 'giờ' : 'tháng'}</small>
+                                            </span>
+                                        ) : (
+                                            <span className="text-muted">Chưa cập nhật</span>
+                                        )}
+                                    </td>
+                                    <td>
                                         <StatusBadge status={staff.status === 'ACTIVE' ? 'active' : 'inactive'}>
                                             {staff.status === 'ACTIVE' ? 'Hoạt động' : 'Ngừng'}
                                         </StatusBadge>
                                     </td>
                                     <td className="actions">
+                                        <button
+                                            className="btn-edit"
+                                            onClick={() => handleOpenModal(staff)}
+                                            title="Chỉnh sửa"
+                                        >
+                                            ✏️
+                                        </button>
+
                                         <button
                                             className="btn-toggle"
                                             onClick={() => handleToggleStatus(staff.id, staff.status)}
@@ -120,7 +160,7 @@ const StaffTab = ({ storeId, staffMembers, onUpdate }) => {
                 </div>
             )}
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Thêm nhân viên mới">
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingStaff ? "Chỉnh sửa nhân viên" : "Thêm nhân viên mới"}>
                 <form onSubmit={handleSubmit} className="staff-form">
                     <Input
                         label="Họ tên"
@@ -153,11 +193,29 @@ const StaffTab = ({ storeId, staffMembers, onUpdate }) => {
                             <option value="CASHIER">Thu ngân</option>
                         </select>
                     </div>
+                    <div className="form-group">
+                        <label>Hình thức trả lương</label>
+                        <select
+                            value={formData.salaryType}
+                            onChange={(e) => setFormData({ ...formData, salaryType: e.target.value })}
+                        >
+                            <option value="MONTHLY">Theo tháng</option>
+                            <option value="HOURLY">Theo giờ</option>
+                        </select>
+                    </div>
+                    <Input
+                        label="Mức lương (VNĐ)"
+                        type="number"
+                        min="0"
+                        value={formData.salaryAmount}
+                        onChange={(e) => setFormData({ ...formData, salaryAmount: e.target.value })}
+                        placeholder="Nhập số tiền"
+                    />
                     <div className="form-actions">
                         <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
                             Hủy
                         </Button>
-                        <Button type="submit">Tạo mới</Button>
+                        <Button type="submit">{editingStaff ? 'Cập nhật' : 'Tạo mới'}</Button>
                     </div>
                 </form>
             </Modal>

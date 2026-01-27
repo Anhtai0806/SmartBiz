@@ -246,6 +246,19 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+
+.order-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.order-item .price {
+    white-space: nowrap;
+    font-weight: 600;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .cashier-tables {

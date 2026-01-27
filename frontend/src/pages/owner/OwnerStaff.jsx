@@ -3,6 +3,7 @@ import Modal from '../../components/Modal';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import StatusBadge from '../../components/StatusBadge';
+import { createStaff, updateStaff, updateStaffStatus } from '../../api/businessOwnerApi';
 import './OwnerStaff.css';
 
 const OwnerStaff = () => {
@@ -16,6 +17,8 @@ const OwnerStaff = () => {
         password: '',
         phoneNumber: '',
         role: 'STAFF',
+        salaryType: 'MONTHLY',
+        salaryAmount: '',
         storeId: '',
         isActive: true
     });
@@ -48,6 +51,8 @@ const OwnerStaff = () => {
                 password: '',
                 phoneNumber: '',
                 role: 'STAFF',
+                salaryType: 'MONTHLY',
+                salaryAmount: '',
                 storeId: '',
                 isActive: true
             });
@@ -63,12 +68,19 @@ const OwnerStaff = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         // TODO: Call backend API to create/update staff
-        if (editingStaff) {
-            setStaff(staff.map(s => s.id === editingStaff.id ? { ...formData, id: editingStaff.id } : s));
-        } else {
-            setStaff([...staff, { ...formData, id: Date.now() }]);
+        try {
+            if (editingStaff) {
+                await updateStaff(editingStaff.id, formData);
+                setStaff(staff.map(s => s.id === editingStaff.id ? { ...s, ...formData } : s));
+            } else {
+                const newStaff = await createStaff(formData);
+                setStaff([...staff, newStaff]);
+            }
+            handleCloseModal();
+        } catch (error) {
+            console.error("Error saving staff:", error);
+            alert("Có lỗi xảy ra: " + (error.message || "Không xác định"));
         }
-        handleCloseModal();
     };
 
     const handleToggleStatus = async (id) => {
@@ -117,6 +129,7 @@ const OwnerStaff = () => {
                             <th>Email</th>
                             <th>Số điện thoại</th>
                             <th>Vai trò</th>
+                            <th>Mức lương</th>
                             <th>Cửa hàng</th>
                             <th>Trạng thái</th>
                             <th>Hành động</th>
@@ -132,6 +145,16 @@ const OwnerStaff = () => {
                                     <span className={`role-badge ${staffMember.role.toLowerCase()}`}>
                                         {staffMember.role === 'STAFF' ? 'Nhân viên' : 'Thu ngân'}
                                     </span>
+                                </td>
+                                <td>
+                                    {staffMember.salaryAmount ? (
+                                        <span>
+                                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(staffMember.salaryAmount)}
+                                            <small className="text-muted">/{staffMember.salaryType === 'HOURLY' ? 'giờ' : 'tháng'}</small>
+                                        </span>
+                                    ) : (
+                                        <span className="text-muted">Chưa cập nhật</span>
+                                    )}
                                 </td>
                                 <td>{staffMember.storeName}</td>
                                 <td>
@@ -217,6 +240,24 @@ const OwnerStaff = () => {
                             <option value="CASHIER">Thu ngân</option>
                         </select>
                     </div>
+                    <div className="form-group">
+                        <label>Hình thức trả lương</label>
+                        <select
+                            value={formData.salaryType}
+                            onChange={(e) => setFormData({ ...formData, salaryType: e.target.value })}
+                        >
+                            <option value="MONTHLY">Theo tháng</option>
+                            <option value="HOURLY">Theo giờ</option>
+                        </select>
+                    </div>
+                    <Input
+                        label="Mức lương (VNĐ)"
+                        type="number"
+                        min="0"
+                        value={formData.salaryAmount}
+                        onChange={(e) => setFormData({ ...formData, salaryAmount: e.target.value })}
+                        placeholder="Nhập số tiền"
+                    />
                     <div className="form-group">
                         <label>Cửa hàng</label>
                         <select

@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { getTablesByStore, getOrderByTable } from '../../api/cashierApi';
+import { useNavigate } from 'react-router-dom';
+import OrderManagement from './OrderManagement';
 import './CashierTables.css';
 
 const CashierTables = () => {
+    const navigate = useNavigate();
     const [tables, setTables] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedTable, setSelectedTable] = useState(null);
+    const [selectedOrder, setSelectedOrder] = useState(null);
     const [filterStatus, setFilterStatus] = useState('ALL');
+    const [error, setError] = useState(null);
+    const [showOrderManagement, setShowOrderManagement] = useState(false);
 
     useEffect(() => {
         fetchTables();
@@ -13,27 +20,16 @@ const CashierTables = () => {
 
     const fetchTables = async () => {
         try {
-            // TODO: Replace with actual API call
-            // const storeId = localStorage.getItem('storeId');
-            // const response = await fetch(`/api/tables/store/${storeId}`);
-            // const data = await response.json();
+            setLoading(true);
+            setError(null);
 
-            // Mock data for now
-            const mockTables = [
-                { id: 1, name: 'Bàn 1', status: 'SERVING', capacity: 4 },
-                { id: 2, name: 'Bàn 2', status: 'EMPTY', capacity: 2 },
-                { id: 3, name: 'Bàn 3', status: 'WAITING_PAYMENT', capacity: 4 },
-                { id: 4, name: 'Bàn 4', status: 'EMPTY', capacity: 6 },
-                { id: 5, name: 'Bàn 5', status: 'SERVING', capacity: 4 },
-                { id: 6, name: 'Bàn 6', status: 'PAID', capacity: 2 },
-                { id: 7, name: 'Bàn 7', status: 'EMPTY', capacity: 4 },
-                { id: 8, name: 'Bàn 8', status: 'SERVING', capacity: 8 },
-            ];
-
-            setTables(mockTables);
+            const storeId = localStorage.getItem('storeId') || '1';
+            const tablesData = await getTablesByStore(storeId);
+            setTables(tablesData);
             setLoading(false);
         } catch (error) {
             console.error('Error fetching tables:', error);
+            setError('Không thể tải danh sách bàn. Vui lòng thử lại.');
             setLoading(false);
         }
     };
@@ -52,17 +48,69 @@ const CashierTables = () => {
         ? tables
         : tables.filter(table => table.status === filterStatus);
 
-    const handleTableClick = (table) => {
+    const handleTableClick = async (table) => {
         setSelectedTable(table);
-        // TODO: Fetch order details for this table
+
+        // Fetch order details if table has an active order
+        if (table.status === 'SERVING' || table.status === 'WAITING_PAYMENT') {
+            try {
+                const orderData = await getOrderByTable(table.id);
+                setSelectedOrder(orderData);
+            } catch (error) {
+                console.error('Error fetching order details:', error);
+                setSelectedOrder(null);
+            }
+        } else {
+            setSelectedOrder(null);
+        }
     };
 
     const closeModal = () => {
         setSelectedTable(null);
+        setSelectedOrder(null);
+    };
+
+    const handleStartService = () => {
+        setShowOrderManagement(true);
+    };
+
+    const handleManageOrder = () => {
+        setShowOrderManagement(true);
+    };
+
+    const handleOrderCreated = async (order) => {
+        setShowOrderManagement(false);
+        setSelectedOrder(order);
+        await fetchTables(); // Refresh tables to show updated status
+    };
+
+    const handleCloseOrderManagement = () => {
+        setShowOrderManagement(false);
+        setSelectedTable(null);
+        setSelectedOrder(null);
+        fetchTables(); // Refresh tables
+    };
+
+
+
+    const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND'
+        }).format(amount);
     };
 
     if (loading) {
-        return <div className="loading">Đang tải...</div>;
+        return <div className="loading">Đang tải dữ liệu...</div>;
+    }
+
+    if (error) {
+        return (
+            <div className="error-container">
+                <p className="error-message">{error}</p>
+                <button onClick={fetchTables} className="retry-btn">Thử lại</button>
+            </div>
+        );
     }
 
     return (
@@ -114,7 +162,6 @@ const CashierTables = () => {
                         >
                             <div className="table-icon">🪑</div>
                             <div className="table-name">{table.name}</div>
-                            <div className="table-capacity">Sức chứa: {table.capacity} người</div>
                             <div className="table-status">
                                 <span className="status-icon">{statusInfo.icon}</span>
                                 <span className="status-label">{statusInfo.label}</span>
@@ -130,7 +177,7 @@ const CashierTables = () => {
                 </div>
             )}
 
-            {selectedTable && (
+            {selectedTable && !showOrderManagement && (
                 <div className="modal-overlay" onClick={closeModal}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
@@ -140,19 +187,77 @@ const CashierTables = () => {
                         <div className="modal-body">
                             <div className="table-detail">
                                 <p><strong>Trạng thái:</strong> {getStatusInfo(selectedTable.status).label}</p>
-                                <p><strong>Sức chứa:</strong> {selectedTable.capacity} người</p>
                             </div>
-                            {selectedTable.status !== 'EMPTY' && (
-                                <div className="table-actions">
-                                    <button className="btn-primary">Xem đơn hàng</button>
-                                    {selectedTable.status === 'WAITING_PAYMENT' && (
-                                        <button className="btn-success">Thanh toán</button>
-                                    )}
+
+                            {selectedOrder && (
+                                <div className="order-details">
+                                    <h4>Chi tiết đơn hàng</h4>
+                                    <p><strong>Mã đơn:</strong> #{selectedOrder.id}</p>
+                                    <p><strong>Nhân viên:</strong> {selectedOrder.staffName}</p>
+                                    <div className="order-items">
+                                        <h5>Món đã gọi:</h5>
+                                        {selectedOrder.items && selectedOrder.items.map(item => (
+                                            <div key={item.id} className="order-item">
+                                                <span>{item.menuItemName} x{item.quantity}</span>
+                                                <span className="price">{formatCurrency(item.subtotal)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="order-total">
+                                        <strong>Tổng cộng:</strong>
+                                        <strong>{formatCurrency(selectedOrder.totalAmount)}</strong>
+                                    </div>
                                 </div>
                             )}
+
+                            <div className="table-actions">
+                                {selectedTable.status === 'EMPTY' && (
+                                    <button
+                                        className="btn-primary"
+                                        onClick={handleStartService}
+                                    >
+                                        🍽️ Bắt đầu phục vụ
+                                    </button>
+                                )}
+
+                                {selectedTable.status === 'SERVING' && (
+                                    <>
+                                        <button
+                                            className="btn-primary"
+                                            onClick={handleManageOrder}
+                                        >
+                                            📝 Quản lý order
+                                        </button>
+                                        <button
+                                            className="btn-success"
+                                            onClick={() => navigate('/cashier/payment')}
+                                        >
+                                            💳 Thanh toán
+                                        </button>
+                                    </>
+                                )}
+
+                                {selectedTable.status === 'WAITING_PAYMENT' && (
+                                    <button
+                                        className="btn-success"
+                                        onClick={() => navigate('/cashier/payment')}
+                                    >
+                                        💳 Thanh toán
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
+            )}
+
+            {showOrderManagement && selectedTable && (
+                <OrderManagement
+                    table={selectedTable}
+                    existingOrder={selectedOrder}
+                    onClose={handleCloseOrderManagement}
+                    onOrderCreated={handleOrderCreated}
+                />
             )}
         </div>
     );

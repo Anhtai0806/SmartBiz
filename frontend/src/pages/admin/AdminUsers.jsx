@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllUsers, updateUserStatus } from '../../api/adminApi';
+import { getAllUsers, updateUserStatus, getStoresByOwnerId } from '../../api/adminApi';
 import StatusBadge from '../../components/StatusBadge';
 import Modal from '../../components/Modal';
 import './AdminUsers.css';
@@ -11,6 +11,8 @@ const AdminUsers = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedUser, setSelectedUser] = useState(null);
     const [showModal, setShowModal] = useState(false);
+    const [userStores, setUserStores] = useState([]);
+    const [loadingStores, setLoadingStores] = useState(false);
 
     useEffect(() => {
         fetchUsers();
@@ -20,7 +22,9 @@ const AdminUsers = () => {
         try {
             setLoading(true);
             const data = await getAllUsers();
-            setUsers(data);
+            // Filter to show only BUSINESS_OWNER users
+            const businessOwners = data.filter(user => user.role === 'BUSINESS_OWNER');
+            setUsers(businessOwners);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -39,9 +43,21 @@ const AdminUsers = () => {
         }
     };
 
-    const handleViewDetails = (user) => {
+    const handleViewDetails = async (user) => {
         setSelectedUser(user);
         setShowModal(true);
+        setUserStores([]);
+
+        // Fetch stores for this business owner
+        try {
+            setLoadingStores(true);
+            const stores = await getStoresByOwnerId(user.id);
+            setUserStores(stores);
+        } catch (err) {
+            console.error('Failed to fetch stores:', err);
+        } finally {
+            setLoadingStores(false);
+        }
     };
 
     const filteredUsers = users.filter(user =>
@@ -60,7 +76,7 @@ const AdminUsers = () => {
     return (
         <div className="admin-users">
             <div className="users-header">
-                <h1>User Management</h1>
+                <h1>Business Owner Management</h1>
                 <div className="search-bar">
                     <input
                         type="text"
@@ -77,7 +93,6 @@ const AdminUsers = () => {
                         <tr>
                             <th>Email</th>
                             <th>Full Name</th>
-                            <th>Role</th>
                             <th>Status</th>
                             <th>Created At</th>
                             <th>Actions</th>
@@ -88,9 +103,6 @@ const AdminUsers = () => {
                             <tr key={user.id}>
                                 <td>{user.email}</td>
                                 <td>{user.fullName || 'N/A'}</td>
-                                <td>
-                                    <StatusBadge status={user.role} type="role" />
-                                </td>
                                 <td>
                                     <StatusBadge status={user.status} type="status" />
                                 </td>
@@ -103,14 +115,12 @@ const AdminUsers = () => {
                                         >
                                             View
                                         </button>
-                                        {user.role === 'BUSINESS_OWNER' && (
-                                            <button
-                                                className={`btn-toggle ${user.status === 'ACTIVE' ? 'btn-lock' : 'btn-unlock'}`}
-                                                onClick={() => handleStatusToggle(user.id, user.status)}
-                                            >
-                                                {user.status === 'ACTIVE' ? 'Lock' : 'Unlock'}
-                                            </button>
-                                        )}
+                                        <button
+                                            className={`btn-toggle ${user.status === 'ACTIVE' ? 'btn-lock' : 'btn-unlock'}`}
+                                            onClick={() => handleStatusToggle(user.id, user.status)}
+                                        >
+                                            {user.status === 'ACTIVE' ? 'Lock' : 'Unlock'}
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -122,7 +132,7 @@ const AdminUsers = () => {
             <Modal
                 isOpen={showModal}
                 onClose={() => setShowModal(false)}
-                title="User Details"
+                title="Business Owner Details"
             >
                 {selectedUser && (
                     <div className="user-details">
@@ -135,12 +145,6 @@ const AdminUsers = () => {
                             <span className="detail-value">{selectedUser.fullName || 'N/A'}</span>
                         </div>
                         <div className="detail-row">
-                            <span className="detail-label">Role:</span>
-                            <span className="detail-value">
-                                <StatusBadge status={selectedUser.role} type="role" />
-                            </span>
-                        </div>
-                        <div className="detail-row">
                             <span className="detail-label">Status:</span>
                             <span className="detail-value">
                                 <StatusBadge status={selectedUser.status} type="status" />
@@ -151,6 +155,34 @@ const AdminUsers = () => {
                             <span className="detail-value">
                                 {new Date(selectedUser.createdAt).toLocaleString()}
                             </span>
+                        </div>
+
+                        <div className="stores-section">
+                            <h3>Owned Stores</h3>
+                            {loadingStores ? (
+                                <p className="loading-text">Loading stores...</p>
+                            ) : userStores.length > 0 ? (
+                                <div className="stores-list">
+                                    {userStores.map(store => (
+                                        <div key={store.id} className="store-item">
+                                            <div className="store-info">
+                                                <h4>{store.name}</h4>
+                                                <p className="store-address">{store.address || 'No address'}</p>
+                                            </div>
+                                            <div className="store-stats">
+                                                <span className="stat">
+                                                    <strong>Staff:</strong> {store.staffCount}
+                                                </span>
+                                                <span className="stat">
+                                                    <strong>Tables:</strong> {store.tableCount}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="no-stores">No stores found</p>
+                            )}
                         </div>
                     </div>
                 )}

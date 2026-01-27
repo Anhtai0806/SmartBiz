@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getTodayOrders, updateOrderStatus } from '../../api/cashierApi';
 import './CashierOrders.css';
 
 const CashierOrders = () => {
@@ -7,6 +8,7 @@ const CashierOrders = () => {
     const [filterStatus, setFilterStatus] = useState('ALL');
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         fetchOrders();
@@ -14,65 +16,16 @@ const CashierOrders = () => {
 
     const fetchOrders = async () => {
         try {
-            // TODO: Replace with actual API call
-            // const shiftId = localStorage.getItem('currentShiftId');
-            // const response = await fetch(`/api/orders/shift/${shiftId}`);
-            // const data = await response.json();
+            setLoading(true);
+            setError(null);
 
-            // Mock data for now
-            const mockOrders = [
-                {
-                    id: 1,
-                    tableId: 1,
-                    tableName: 'Bàn 1',
-                    status: 'PROCESSING',
-                    createdAt: '2026-01-24T10:30:00',
-                    items: [
-                        { id: 1, name: 'Cà phê sữa', quantity: 2, price: 25000 },
-                        { id: 2, name: 'Bánh mì', quantity: 1, price: 20000 }
-                    ],
-                    total: 70000
-                },
-                {
-                    id: 2,
-                    tableId: 3,
-                    tableName: 'Bàn 3',
-                    status: 'WAITING_PAYMENT',
-                    createdAt: '2026-01-24T11:15:00',
-                    items: [
-                        { id: 3, name: 'Trà sữa', quantity: 3, price: 30000 },
-                        { id: 4, name: 'Bánh ngọt', quantity: 2, price: 35000 }
-                    ],
-                    total: 160000
-                },
-                {
-                    id: 3,
-                    tableId: 5,
-                    tableName: 'Bàn 5',
-                    status: 'DONE',
-                    createdAt: '2026-01-24T11:45:00',
-                    items: [
-                        { id: 5, name: 'Nước ép', quantity: 2, price: 40000 }
-                    ],
-                    total: 80000
-                },
-                {
-                    id: 4,
-                    tableId: 2,
-                    tableName: 'Bàn 2',
-                    status: 'NEW',
-                    createdAt: '2026-01-24T12:00:00',
-                    items: [
-                        { id: 6, name: 'Cà phê đen', quantity: 1, price: 20000 }
-                    ],
-                    total: 20000
-                }
-            ];
-
-            setOrders(mockOrders);
+            const storeId = localStorage.getItem('storeId') || '1';
+            const ordersData = await getTodayOrders(storeId);
+            setOrders(ordersData);
             setLoading(false);
         } catch (error) {
             console.error('Error fetching orders:', error);
+            setError('Không thể tải danh sách đơn hàng. Vui lòng thử lại.');
             setLoading(false);
         }
     };
@@ -102,23 +55,21 @@ const CashierOrders = () => {
 
     const handleUpdateStatus = async (orderId, newStatus) => {
         try {
-            // TODO: Replace with actual API call
-            // await fetch(`/api/orders/${orderId}/status`, {
-            //     method: 'PUT',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify({ status: newStatus })
-            // });
+            await updateOrderStatus(orderId, newStatus);
 
-            // Update local state
-            setOrders(orders.map(order =>
-                order.id === orderId ? { ...order, status: newStatus } : order
-            ));
+            // Refresh orders list to get updated data
+            await fetchOrders();
 
+            // Update selected order if it's still open
             if (selectedOrder && selectedOrder.id === orderId) {
-                setSelectedOrder({ ...selectedOrder, status: newStatus });
+                const updatedOrder = orders.find(o => o.id === orderId);
+                if (updatedOrder) {
+                    setSelectedOrder({ ...updatedOrder, status: newStatus });
+                }
             }
         } catch (error) {
             console.error('Error updating order status:', error);
+            alert('Không thể cập nhật trạng thái đơn hàng. Vui lòng thử lại.');
         }
     };
 
@@ -138,7 +89,16 @@ const CashierOrders = () => {
     };
 
     if (loading) {
-        return <div className="loading">Đang tải...</div>;
+        return <div className="loading">Đang tải dữ liệu...</div>;
+    }
+
+    if (error) {
+        return (
+            <div className="error-container">
+                <p className="error-message">{error}</p>
+                <button onClick={fetchOrders} className="retry-btn">Thử lại</button>
+            </div>
+        );
     }
 
     return (
@@ -213,16 +173,16 @@ const CashierOrders = () => {
                                 </span>
                             </div>
                             <div className="order-items">
-                                {order.items.map(item => (
+                                {order.items && order.items.map(item => (
                                     <div key={item.id} className="item-row">
-                                        <span>{item.name} x{item.quantity}</span>
-                                        <span>{formatCurrency(item.price * item.quantity)}</span>
+                                        <span>{item.menuItemName} x{item.quantity}</span>
+                                        <span>{formatCurrency(item.subtotal)}</span>
                                     </div>
                                 ))}
                             </div>
                             <div className="order-total">
                                 <strong>Tổng cộng:</strong>
-                                <strong className="total-amount">{formatCurrency(order.total)}</strong>
+                                <strong className="total-amount">{formatCurrency(order.totalAmount)}</strong>
                             </div>
                         </div>
                     );
@@ -251,16 +211,16 @@ const CashierOrders = () => {
 
                             <div className="items-detail">
                                 <h4>Món đã gọi:</h4>
-                                {selectedOrder.items.map(item => (
+                                {selectedOrder.items && selectedOrder.items.map(item => (
                                     <div key={item.id} className="detail-item-row">
-                                        <span>{item.name}</span>
+                                        <span>{item.menuItemName}</span>
                                         <span>x{item.quantity}</span>
-                                        <span>{formatCurrency(item.price * item.quantity)}</span>
+                                        <span>{formatCurrency(item.subtotal)}</span>
                                     </div>
                                 ))}
                                 <div className="detail-total">
                                     <strong>Tổng cộng:</strong>
-                                    <strong>{formatCurrency(selectedOrder.total)}</strong>
+                                    <strong>{formatCurrency(selectedOrder.totalAmount)}</strong>
                                 </div>
                             </div>
 

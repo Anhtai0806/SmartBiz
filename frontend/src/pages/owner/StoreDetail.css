@@ -42,22 +42,77 @@
 
 .store-header {
     margin-bottom: 32px;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
 }
 
 .store-info {
-    margin-top: 16px;
+    margin-top: 0;
+    flex: 1;
+}
+
+.store-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
 }
 
 .store-info h1 {
     font-size: 32px;
     font-weight: 700;
     color: #111827;
+    margin: 0;
+}
+
+.edit-store-btn {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.edit-store-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+}
+
+.edit-store-form .form-group {
+    margin-bottom: 20px;
+}
+
+.edit-store-form label {
+    display: block;
     margin-bottom: 8px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.status-select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.status-select:focus {
+    outline: none;
+    border-color: #3b82f6;
 }
 
 .store-address {
     color: #6b7280;
     font-size: 16px;
+    margin: 0;
 }
 
 .tabs-container {

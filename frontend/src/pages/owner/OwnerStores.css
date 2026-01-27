@@ -115,7 +115,10 @@
 .store-footer {
     border-top: 1px solid #e5e7eb;
     padding-top: 12px;
-    text-align: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
 }
 
 .store-date {

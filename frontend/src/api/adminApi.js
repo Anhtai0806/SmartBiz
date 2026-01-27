@@ -100,4 +100,17 @@ export const getDashboardStats = async () => {
     return response.json();
 };
 
+// Get stores owned by a specific business owner
+export const getStoresByOwnerId = async (userId) => {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/stores`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to fetch stores for business owner');
+    }
+
+    return response.json();
+};
 

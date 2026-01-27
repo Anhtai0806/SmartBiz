@@ -19,6 +19,31 @@
     color: white;
 }
 
+.status-success {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.status-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+}
+
+.status-warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+
+.status-info {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+}
+
+.status-default {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+    color: white;
+}
+
 /* Role badges */
 .role-badge {
     padding: 5px 14px;

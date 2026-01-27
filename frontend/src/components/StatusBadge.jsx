@@ -1,7 +1,7 @@
 import React from 'react';
 import './StatusBadge.css';
 
-const StatusBadge = ({ status, type = 'status' }) => {
+const StatusBadge = ({ status, type = 'status', children }) => {
     const getClassName = () => {
         if (type === 'role') {
             return `status-badge role-badge role-${status.toLowerCase()}`;
@@ -11,7 +11,7 @@ const StatusBadge = ({ status, type = 'status' }) => {
 
     return (
         <span className={getClassName()}>
-            {status}
+            {children || status}
         </span>
     );
 };

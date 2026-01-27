@@ -57,6 +57,12 @@ export const createStaff = async (staffData) => {
     return response.data;
 };
 
+// Update staff details
+export const updateStaff = async (staffId, userData) => {
+    const response = await api.put(`/staff/${staffId}`, userData);
+    return response.data;
+};
+
 export const assignStaffToStore = async (storeId, userId) => {
     const response = await api.post('/staff/assign', { storeId, userId });
     return response.data;
@@ -148,6 +154,22 @@ export const createTable = async (tableData) => {
     return response.data;
 };
 
+export const bulkCreateTables = async (bulkData) => {
+    const token = localStorage.getItem('token');
+    const response = await axios.post('http://localhost:8080/api/tables/bulk', bulkData, {
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    return response.data;
+};
+
+export const updateStore = async (storeId, storeData) => {
+    const response = await api.put(`/stores/${storeId}`, storeData);
+    return response.data;
+};
+
 export const updateTable = async (tableId, tableData) => {
     const token = localStorage.getItem('token');
     const response = await axios.put(`http://localhost:8080/api/tables/${tableId}`, tableData, {
@@ -220,6 +242,52 @@ export const deleteShift = async (shiftId) => {
     return response.data;
 };
 
+// Reports
+// Reports
+export const getRevenueReport = async (startDate, endDate, storeId) => {
+    const params = { startDate, endDate };
+    if (storeId) params.storeId = storeId;
+
+    const response = await api.get('/reports/revenue', { params });
+    return response.data;
+};
+
+export const getTopProducts = async (startDate, endDate, limit = 10, storeId) => {
+    const params = { startDate, endDate, limit };
+    if (storeId) params.storeId = storeId;
+
+    const response = await api.get('/reports/top-products', { params });
+    return response.data;
+};
+
+export const getStoreComparison = async (startDate, endDate) => {
+    const response = await api.get('/reports/store-comparison', {
+        params: { startDate, endDate }
+    });
+    return response.data;
+};
+
+// QR Payment Code Management
+export const getQRPaymentCode = async () => {
+    const response = await api.get('/qr-payment');
+    return response.data;
+};
+
+export const createQRPaymentCode = async (qrData) => {
+    const response = await api.post('/qr-payment', qrData);
+    return response.data;
+};
+
+export const updateQRPaymentCode = async (qrData) => {
+    const response = await api.put('/qr-payment', qrData);
+    return response.data;
+};
+
+export const deleteQRPaymentCode = async () => {
+    const response = await api.delete('/qr-payment');
+    return response.data;
+};
+
 
 const businessOwnerApi = {
     getDashboardStats,
@@ -238,7 +306,8 @@ const businessOwnerApi = {
     getShiftsByDateRange,
     createShift,
     updateShift,
-    deleteShift
+    deleteShift,
+    updateStaff
 };
 
 export default businessOwnerApi;

@@ -26,54 +26,72 @@
     margin-bottom: 40px;
 }
 
-.role-breakdown {
+.business-owner-trend {
     background: white;
     border-radius: 16px;
     padding: 28px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.role-breakdown h2 {
-    margin: 0 0 24px 0;
+.trend-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    gap: 20px;
+}
+
+.business-owner-trend h2 {
+    margin: 0 0 8px 0;
     font-size: 24px;
     font-weight: 700;
     color: #111827;
 }
 
-.role-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-}
-
-.role-card {
-    background: linear-gradient(135deg, #f9fafb, #ffffff);
-    border: 2px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-    transition: all 0.3s ease;
-}
-
-.role-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-    border-color: #3b82f6;
-}
-
-.role-name {
+.trend-subtitle {
+    margin: 0;
     font-size: 14px;
-    font-weight: 600;
     color: #6b7280;
+}
+
+.new-owners-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    padding: 16px 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+    min-width: 140px;
+}
+
+.badge-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
-.role-count {
-    font-size: 36px;
+.badge-value {
+    font-size: 32px;
     font-weight: 700;
-    color: #111827;
+    color: white;
+}
+
+.chart-container {
+    width: 100%;
+    overflow-x: auto;
+    padding: 20px 0;
+}
+
+.trend-chart {
+    width: 100%;
+    max-width: 600px;
+    height: auto;
+    margin: 0 auto;
+    display: block;
 }
 
 .loading,
