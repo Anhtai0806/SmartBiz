@@ -110,15 +110,34 @@ public class ShiftService {
     }
 
     /**
-     * Get shifts by store and date range for calendar view (BUSINESS_OWNER)
+     * Get shifts by store and date range for calendar view
+     * Accessible by Owner, Cashier, and Staff
      */
-    public List<ShiftResponse> getShiftsByStoreAndDateRange(UUID ownerId, Long storeId,
+    public List<ShiftResponse> getShiftsByStoreAndDateRange(UUID requesterId, Long storeId,
             LocalDate startDate, LocalDate endDate) {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Store not found with id: " + storeId));
 
-        // Verify ownership
-        if (!store.getOwner().getId().equals(ownerId)) {
+        User requester = userRepository.findById(requesterId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        boolean isAllowed = false;
+
+        if (requester.getRole() == Role.BUSINESS_OWNER) {
+            // Verify ownership
+            if (store.getOwner().getId().equals(requesterId)) {
+                isAllowed = true;
+            }
+        } else if (requester.getRole() == Role.STAFF || requester.getRole() == Role.CASHIER) {
+            // Verify assigned to store
+            boolean isAssigned = store.getStaffMembers().stream()
+                    .anyMatch(staff -> staff.getId().equals(requesterId));
+            if (isAssigned) {
+                isAllowed = true;
+            }
+        }
+
+        if (!isAllowed) {
             throw new UnauthorizedException("You don't have permission to view shifts for this store");
         }
 

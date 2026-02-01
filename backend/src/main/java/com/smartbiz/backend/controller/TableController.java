@@ -45,6 +45,17 @@ public class TableController {
     }
 
     /**
+     * Bulk create tables (BUSINESS_OWNER only)
+     */
+    @PostMapping("/bulk")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<List<TableResponse>> bulkCreateTables(@Valid @RequestBody BulkCreateTablesRequest request) {
+        User currentUser = getCurrentUser();
+        List<TableResponse> tables = tableService.bulkCreateTables(currentUser.getId(), request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(tables);
+    }
+
+    /**
      * Update table status (STAFF, CASHIER can update)
      */
     @PutMapping("/{id}/status")

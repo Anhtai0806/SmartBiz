@@ -51,6 +51,19 @@ public class BusinessController {
     }
 
     /**
+     * Update store information
+     */
+    @PutMapping("/stores/{storeId}")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<StoreResponse> updateStore(
+            @PathVariable Long storeId,
+            @Valid @RequestBody UpdateStoreRequest request) {
+        User currentUser = getCurrentUser();
+        StoreResponse store = businessOwnerService.updateStore(currentUser.getId(), storeId, request);
+        return ResponseEntity.ok(store);
+    }
+
+    /**
      * Create STAFF or CASHIER account
      */
     @PostMapping("/staff")
@@ -82,6 +95,19 @@ public class BusinessController {
             @Valid @RequestBody UpdateUserStatusRequest request) {
         User currentUser = getCurrentUser();
         UserResponse staff = businessOwnerService.updateStaffStatus(currentUser.getId(), staffId, request);
+        return ResponseEntity.ok(staff);
+    }
+
+    /**
+     * Update staff details
+     */
+    @PutMapping("/staff/{staffId}")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<UserResponse> updateStaff(
+            @PathVariable UUID staffId,
+            @Valid @RequestBody UpdateStaffRequest request) {
+        User currentUser = getCurrentUser();
+        UserResponse staff = businessOwnerService.updateStaff(currentUser.getId(), staffId, request);
         return ResponseEntity.ok(staff);
     }
 
@@ -273,6 +299,53 @@ public class BusinessController {
     public ResponseEntity<Void> deleteShiftTemplate(@PathVariable Long shiftId) {
         User currentUser = getCurrentUser();
         businessOwnerService.deleteShiftTemplate(currentUser.getId(), shiftId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Get QR payment code for current business owner
+     */
+    @GetMapping("/qr-payment")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<QRPaymentResponse> getQRPaymentCode() {
+        User currentUser = getCurrentUser();
+        QRPaymentResponse qrCode = businessOwnerService.getQRPaymentCode(currentUser.getId());
+        if (qrCode == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(qrCode);
+    }
+
+    /**
+     * Create QR payment code
+     */
+    @PostMapping("/qr-payment")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<QRPaymentResponse> createQRPaymentCode(@Valid @RequestBody QRPaymentRequest request) {
+        User currentUser = getCurrentUser();
+        QRPaymentResponse qrCode = businessOwnerService.createQRPaymentCode(currentUser.getId(), request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(qrCode);
+    }
+
+    /**
+     * Update QR payment code
+     */
+    @PutMapping("/qr-payment")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<QRPaymentResponse> updateQRPaymentCode(@Valid @RequestBody QRPaymentRequest request) {
+        User currentUser = getCurrentUser();
+        QRPaymentResponse qrCode = businessOwnerService.updateQRPaymentCode(currentUser.getId(), request);
+        return ResponseEntity.ok(qrCode);
+    }
+
+    /**
+     * Delete QR payment code
+     */
+    @DeleteMapping("/qr-payment")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<Void> deleteQRPaymentCode() {
+        User currentUser = getCurrentUser();
+        businessOwnerService.deleteQRPaymentCode(currentUser.getId());
         return ResponseEntity.noContent().build();
     }
 

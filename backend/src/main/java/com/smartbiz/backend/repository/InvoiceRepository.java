@@ -5,6 +5,8 @@ import com.smartbiz.backend.entity.PaymentMethod;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import java.math.BigDecimal;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -36,4 +38,33 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
         List<Invoice> findByOrderTableStoreId(@Param("storeId") Long storeId);
 
         boolean existsByOrderId(Long orderId);
+
+        @Query("SELECT COALESCE(SUM(i.totalAmount), 0) FROM Invoice i WHERE i.order.table.store.id = :storeId AND i.createdAt BETWEEN :start AND :end")
+        BigDecimal sumTotalAmountByStoreIdAndCreatedAtBetween(
+                        @Param("storeId") Long storeId,
+                        @Param("start") LocalDateTime start,
+                        @Param("end") LocalDateTime end);
+
+        @Query("SELECT DATE(i.createdAt) as date, SUM(i.totalAmount) as revenue, COUNT(i) as orders " +
+                        "FROM Invoice i " +
+                        "WHERE i.order.table.store.owner.id = :ownerId " +
+                        "AND (:storeId IS NULL OR i.order.table.store.id = :storeId) " +
+                        "AND i.createdAt BETWEEN :start AND :end " +
+                        "GROUP BY DATE(i.createdAt) " +
+                        "ORDER BY DATE(i.createdAt)")
+        List<Object[]> getRevenueReportByOwnerId(
+                        @Param("ownerId") java.util.UUID ownerId,
+                        @Param("storeId") Long storeId,
+                        @Param("start") LocalDateTime start,
+                        @Param("end") LocalDateTime end);
+
+        @Query("SELECT i.order.table.store.id, i.order.table.store.name, SUM(i.totalAmount), COUNT(i) " +
+                        "FROM Invoice i " +
+                        "WHERE i.order.table.store.owner.id = :ownerId " +
+                        "AND i.createdAt BETWEEN :start AND :end " +
+                        "GROUP BY i.order.table.store.id, i.order.table.store.name")
+        List<Object[]> getStoreComparisonByOwnerId(
+                        @Param("ownerId") java.util.UUID ownerId,
+                        @Param("start") LocalDateTime start,
+                        @Param("end") LocalDateTime end);
 }

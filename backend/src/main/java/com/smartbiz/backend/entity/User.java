@@ -46,6 +46,13 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private Status status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "salary_type")
+    private SalaryType salaryType;
+
+    @Column(name = "salary_amount", precision = 12, scale = 2)
+    private java.math.BigDecimal salaryAmount;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

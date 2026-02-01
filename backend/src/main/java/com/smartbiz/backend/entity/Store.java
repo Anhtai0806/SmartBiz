@@ -32,8 +32,24 @@ public class Store {
     @Column(length = 255)
     private String address;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Status status;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "opening_time")
+    private java.time.LocalTime openingTime;
+
+    @Column(name = "closing_time")
+    private java.time.LocalTime closingTime;
+
+    @Column(name = "tax_rate", precision = 5, scale = 2)
+    private java.math.BigDecimal taxRate;
+
+    @Column(length = 20)
+    private String phone;
 
     @OneToMany(mappedBy = "store", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -59,5 +75,8 @@ public class Store {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        if (status == null) {
+            status = Status.ACTIVE;
+        }
     }
 }

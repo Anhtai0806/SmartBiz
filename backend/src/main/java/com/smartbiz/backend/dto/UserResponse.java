@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import com.smartbiz.backend.entity.SalaryType;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -19,5 +21,7 @@ public class UserResponse {
     private String fullName;
     private String role;
     private String status;
+    private SalaryType salaryType;
+    private BigDecimal salaryAmount;
     private LocalDateTime createdAt;
 }

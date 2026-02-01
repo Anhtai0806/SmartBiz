@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Map;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -17,5 +17,6 @@ public class DashboardStatsResponse {
     private Long totalStores;
     private Long activeUsers;
     private Long inactiveUsers;
-    private Map<String, Long> usersByRole;
+    private Long newBusinessOwnersThisMonth;
+    private List<MonthlyRegistrationData> businessOwnerTrend;
 }

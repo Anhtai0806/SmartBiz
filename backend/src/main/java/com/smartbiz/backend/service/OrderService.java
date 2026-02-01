@@ -18,160 +18,294 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderService {
 
-    private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
-    private final TablesRepository tablesRepository;
-    private final StaffShiftRepository staffShiftRepository;
-    private final MenuItemRepository menuItemRepository;
+        private final OrderRepository orderRepository;
+        private final OrderItemRepository orderItemRepository;
+        private final TablesRepository tablesRepository;
+        private final StaffShiftRepository staffShiftRepository;
+        private final MenuItemRepository menuItemRepository;
 
-    /**
-     * Get order by table
-     */
-    public OrderResponse getOrderByTable(Long tableId) {
-        Order order = orderRepository.findActiveOrderByTableId(tableId)
-                .orElseThrow(() -> new ResourceNotFoundException("No active order found for table: " + tableId));
-        return convertToResponse(order);
-    }
+        /**
+         * Get order by table
+         */
+        public OrderResponse getOrderByTable(Long tableId) {
+                List<Order> orders = orderRepository.findActiveOrderByTableId(tableId);
 
-    /**
-     * Get orders by shift
-     */
-    public List<OrderResponse> getOrdersByShift(Long shiftId) {
-        List<Order> orders = orderRepository.findByShiftId(shiftId);
-        return orders.stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
-    }
+                if (orders.isEmpty()) {
+                        throw new ResourceNotFoundException(
+                                        "No active order found for table: " + tableId);
+                }
 
-    /**
-     * Get orders by store
-     */
-    public List<OrderResponse> getOrdersByStore(Long storeId) {
-        List<Order> orders = orderRepository.findByStoreId(storeId);
-        return orders.stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Create a new order (STAFF)
-     */
-    @Transactional
-    public OrderResponse createOrder(UUID staffId, OrderRequest request) {
-        Tables table = tablesRepository.findById(request.getTableId())
-                .orElseThrow(() -> new ResourceNotFoundException("Table not found with id: " + request.getTableId()));
-
-        StaffShift shift = staffShiftRepository.findById(request.getShiftId())
-                .orElseThrow(() -> new ResourceNotFoundException("Shift not found with id: " + request.getShiftId()));
-
-        // Verify staff is assigned to this shift
-        if (!shift.getUser().getId().equals(staffId)) {
-            throw new IllegalArgumentException("You are not assigned to this shift");
+                // Return the most recent order (first in the list due to ORDER BY createdAt
+                // DESC)
+                Order order = orders.get(0);
+                return convertToResponse(order);
         }
 
-        // Create order
-        Order order = Order.builder()
-                .table(table)
-                .staff(shift.getUser())
-                .shift(shift)
-                .status(OrderStatus.NEW)
-                .orderItems(new ArrayList<>())
-                .build();
-
-        Order savedOrder = orderRepository.save(order);
-
-        // Add items if provided
-        if (request.getItems() != null && !request.getItems().isEmpty()) {
-            for (OrderItemRequest itemRequest : request.getItems()) {
-                addItemToOrder(savedOrder.getId(), itemRequest);
-            }
+        /**
+         * Get orders by shift
+         */
+        public List<OrderResponse> getOrdersByShift(Long shiftId) {
+                List<Order> orders = orderRepository.findByShiftId(shiftId);
+                return orders.stream()
+                                .map(this::convertToResponse)
+                                .collect(Collectors.toList());
         }
 
-        // Update table status
-        table.setStatus(TableStatus.SERVING);
-        tablesRepository.save(table);
-
-        return convertToResponse(orderRepository.findById(savedOrder.getId()).orElseThrow());
-    }
-
-    /**
-     * Add item to order
-     */
-    @Transactional
-    public OrderResponse addItemToOrder(Long orderId, OrderItemRequest request) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
-
-        MenuItem menuItem = menuItemRepository.findById(request.getMenuItemId())
-                .orElseThrow(
-                        () -> new ResourceNotFoundException("Menu item not found with id: " + request.getMenuItemId()));
-
-        OrderItem orderItem = OrderItem.builder()
-                .order(order)
-                .menuItem(menuItem)
-                .quantity(request.getQuantity())
-                .price(menuItem.getPrice())
-                .build();
-
-        orderItemRepository.save(orderItem);
-        return convertToResponse(order);
-    }
-
-    /**
-     * Update order status (CASHIER)
-     */
-    @Transactional
-    public OrderResponse updateOrderStatus(Long orderId, OrderStatusRequest request) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
-
-        order.setStatus(request.getStatus());
-
-        // Update table status based on order status
-        if (request.getStatus() == OrderStatus.DONE) {
-            order.getTable().setStatus(TableStatus.WAITING_PAYMENT);
+        /**
+         * Get orders by store
+         */
+        public List<OrderResponse> getOrdersByStore(Long storeId) {
+                List<Order> orders = orderRepository.findByStoreId(storeId);
+                return orders.stream()
+                                .map(this::convertToResponse)
+                                .collect(Collectors.toList());
         }
 
-        Order updated = orderRepository.save(order);
-        return convertToResponse(updated);
-    }
+        /**
+         * Create a new order (STAFF)
+         */
+        @Transactional
+        public OrderResponse createOrder(UUID staffId, OrderRequest request) {
+                Tables table = tablesRepository.findById(request.getTableId())
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Table not found with id: " + request.getTableId()));
 
-    /**
-     * Convert Order entity to response DTO
-     */
-    public OrderResponse convertToResponse(Order order) {
-        List<OrderItemResponse> items = orderItemRepository.findByOrderId(order.getId()).stream()
-                .map(this::convertToItemResponse)
-                .collect(Collectors.toList());
+                // Find or validate shift
+                StaffShift shift = staffShiftRepository.findById(request.getShiftId()).orElse(null);
 
-        BigDecimal totalAmount = items.stream()
-                .map(OrderItemResponse::getSubtotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                // If shift not found or doesn't belong to current user, try to find active
+                // shift for today
+                if (shift == null || !shift.getUser().getId().equals(staffId)) {
+                        List<StaffShift> userShifts = staffShiftRepository.findByUserIdAndShiftDate(
+                                        staffId,
+                                        java.time.LocalDate.now());
 
-        return OrderResponse.builder()
-                .id(order.getId())
-                .tableId(order.getTable().getId())
-                .tableName(order.getTable().getName())
-                .staffId(order.getStaff().getId())
-                .staffName(order.getStaff().getFullName())
-                .shiftId(order.getShift().getId())
-                .status(order.getStatus())
-                .createdAt(order.getCreatedAt())
-                .items(items)
-                .totalAmount(totalAmount)
-                .build();
-    }
+                        if (userShifts.isEmpty()) {
+                                // For testing purposes, if no shift found, throw clear error
+                                throw new IllegalArgumentException(
+                                                "Không tìm thấy ca làm việc (Shift) cho user này hôm nay. Vui lòng tạo ca làm việc trước.");
+                        }
 
-    private OrderItemResponse convertToItemResponse(OrderItem item) {
-        BigDecimal subtotal = item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+                        // Find the shift that matches current time
+                        java.time.LocalTime now = java.time.LocalTime.now();
+                        StaffShift activeShift = null;
 
-        return OrderItemResponse.builder()
-                .id(item.getId())
-                .menuItemId(item.getMenuItem().getId())
-                .menuItemName(item.getMenuItem().getName())
-                .quantity(item.getQuantity())
-                .price(item.getPrice())
-                .subtotal(subtotal)
-                .build();
-    }
+                        for (StaffShift s : userShifts) {
+                                java.time.LocalTime start = s.getStartTime();
+                                java.time.LocalTime end = s.getEndTime();
+
+                                boolean isWithinShift;
+                                if (start.isBefore(end)) {
+                                        // Normal shift (e.g., 08:00 to 12:00)
+                                        isWithinShift = !now.isBefore(start) && !now.isAfter(end);
+                                } else {
+                                        // Overnight shift (e.g., 22:00 to 06:00)
+                                        isWithinShift = !now.isBefore(start) || !now.isAfter(end);
+                                }
+
+                                if (isWithinShift) {
+                                        activeShift = s;
+                                        break;
+                                }
+                        }
+
+                        if (activeShift == null) {
+                                // Build error message with all available shifts
+                                StringBuilder shiftTimes = new StringBuilder();
+                                for (int i = 0; i < userShifts.size(); i++) {
+                                        StaffShift s = userShifts.get(i);
+                                        if (i > 0)
+                                                shiftTimes.append(", ");
+                                        shiftTimes.append(s.getStartTime()).append(" - ").append(s.getEndTime());
+                                }
+                                throw new IllegalArgumentException(
+                                                "Hiện tại không nằm trong khung giờ làm việc của bạn. Các ca làm việc hôm nay: "
+                                                                + shiftTimes.toString());
+                        }
+
+                        shift = activeShift;
+                } else {
+                        // Validate if current time is within the provided shift hours
+                        java.time.LocalTime now = java.time.LocalTime.now();
+                        java.time.LocalTime start = shift.getStartTime();
+                        java.time.LocalTime end = shift.getEndTime();
+
+                        boolean isWithinShift;
+                        if (start.isBefore(end)) {
+                                // Normal shift (e.g., 08:00 to 16:00)
+                                isWithinShift = !now.isBefore(start) && !now.isAfter(end);
+                        } else {
+                                // Overnight shift (e.g., 22:00 to 06:00)
+                                isWithinShift = !now.isBefore(start) || !now.isAfter(end);
+                        }
+
+                        if (!isWithinShift) {
+                                throw new IllegalArgumentException(
+                                                "Hiện tại không nằm trong khung giờ làm việc của bạn (" + start + " - "
+                                                                + end
+                                                                + ").");
+                        }
+                }
+
+                // Create order
+                Order order = Order.builder()
+                                .table(table)
+                                .staff(shift.getUser())
+                                .shift(shift)
+                                .status(OrderStatus.NEW)
+                                .orderItems(new ArrayList<>())
+                                .build();
+
+                Order savedOrder = orderRepository.save(order);
+
+                // Add items if provided
+                if (request.getItems() != null && !request.getItems().isEmpty()) {
+                        for (OrderItemRequest itemRequest : request.getItems()) {
+                                addItemToOrder(savedOrder.getId(), itemRequest);
+                        }
+                }
+
+                // Update table status
+                table.setStatus(TableStatus.SERVING);
+                tablesRepository.save(table);
+
+                return convertToResponse(orderRepository.findById(savedOrder.getId()).orElseThrow());
+        }
+
+        /**
+         * Add item to order
+         */
+        @Transactional
+        public OrderResponse addItemToOrder(Long orderId, OrderItemRequest request) {
+                Order order = orderRepository.findById(orderId)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Order not found with id: " + orderId));
+
+                MenuItem menuItem = menuItemRepository.findById(request.getMenuItemId())
+                                .orElseThrow(
+                                                () -> new ResourceNotFoundException("Menu item not found with id: "
+                                                                + request.getMenuItemId()));
+
+                OrderItem orderItem = OrderItem.builder()
+                                .order(order)
+                                .menuItem(menuItem)
+                                .quantity(request.getQuantity())
+                                .price(menuItem.getPrice())
+                                .build();
+
+                orderItemRepository.save(orderItem);
+                return convertToResponse(order);
+        }
+
+        /**
+         * Update order status (CASHIER)
+         */
+        @Transactional
+        public OrderResponse updateOrderStatus(Long orderId, OrderStatusRequest request) {
+                Order order = orderRepository.findById(orderId)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Order not found with id: " + orderId));
+
+                order.setStatus(request.getStatus());
+
+                // Update table status based on order status
+                if (request.getStatus() == OrderStatus.DONE) {
+                        order.getTable().setStatus(TableStatus.WAITING_PAYMENT);
+                }
+
+                Order updated = orderRepository.save(order);
+                return convertToResponse(updated);
+        }
+
+        /**
+         * Remove item from order
+         */
+        @Transactional
+        public OrderResponse removeItemFromOrder(Long orderId, Long itemId) {
+                Order order = orderRepository.findById(orderId)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Order not found with id: " + orderId));
+
+                OrderItem itemToRemove = orderItemRepository.findById(itemId)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Order item not found with id: " + itemId));
+
+                // Verify item belongs to this order
+                if (!itemToRemove.getOrder().getId().equals(orderId)) {
+                        throw new IllegalArgumentException("Item does not belong to this order");
+                }
+
+                // Check if this is the last item
+                List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+                if (items.size() <= 1) {
+                        throw new IllegalStateException(
+                                        "Cannot remove the last item from order. Please cancel the order instead.");
+                }
+
+                orderItemRepository.delete(itemToRemove);
+                return convertToResponse(order);
+        }
+
+        /**
+         * Update order item quantity
+         */
+        @Transactional
+        public OrderResponse updateOrderItem(Long orderId, Long itemId, UpdateOrderItemRequest request) {
+                Order order = orderRepository.findById(orderId)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Order not found with id: " + orderId));
+
+                OrderItem item = orderItemRepository.findById(itemId)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Order item not found with id: " + itemId));
+
+                // Verify item belongs to this order
+                if (!item.getOrder().getId().equals(orderId)) {
+                        throw new IllegalArgumentException("Item does not belong to this order");
+                }
+
+                item.setQuantity(request.getQuantity());
+                orderItemRepository.save(item);
+
+                return convertToResponse(order);
+        }
+
+        /**
+         * Convert Order entity to response DTO
+         */
+        public OrderResponse convertToResponse(Order order) {
+                List<OrderItemResponse> items = orderItemRepository.findByOrderId(order.getId()).stream()
+                                .map(this::convertToItemResponse)
+                                .collect(Collectors.toList());
+
+                BigDecimal totalAmount = items.stream()
+                                .map(OrderItemResponse::getSubtotal)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                return OrderResponse.builder()
+                                .id(order.getId())
+                                .tableId(order.getTable().getId())
+                                .tableName(order.getTable().getName())
+                                .staffId(order.getStaff().getId())
+                                .staffName(order.getStaff().getFullName())
+                                .shiftId(order.getShift().getId())
+                                .status(order.getStatus())
+                                .createdAt(order.getCreatedAt())
+                                .items(items)
+                                .totalAmount(totalAmount)
+                                .build();
+        }
+
+        private OrderItemResponse convertToItemResponse(OrderItem item) {
+                BigDecimal subtotal = item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+
+                return OrderItemResponse.builder()
+                                .id(item.getId())
+                                .menuItemId(item.getMenuItem().getId())
+                                .menuItemName(item.getMenuItem().getName())
+                                .quantity(item.getQuantity())
+                                .price(item.getPrice())
+                                .subtotal(subtotal)
+                                .build();
+        }
 }

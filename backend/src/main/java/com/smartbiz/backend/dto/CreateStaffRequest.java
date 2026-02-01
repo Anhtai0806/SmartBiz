@@ -7,7 +7,9 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import com.smartbiz.backend.entity.SalaryType;
 import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
 
 @Data
 @NoArgsConstructor
@@ -30,4 +32,7 @@ public class CreateStaffRequest {
 
     @NotNull(message = "Role is required")
     private String role; // STAFF or CASHIER only
+
+    private SalaryType salaryType;
+    private BigDecimal salaryAmount;
 }

@@ -19,4 +19,13 @@ public class CreateStoreRequest {
 
     @Size(max = 255, message = "Address must not exceed 255 characters")
     private String address;
+
+    @Size(max = 20, message = "Phone number must not exceed 20 characters")
+    private String phone;
+
+    private java.math.BigDecimal taxRate;
+
+    private java.time.LocalTime openingTime;
+
+    private java.time.LocalTime closingTime;
 }

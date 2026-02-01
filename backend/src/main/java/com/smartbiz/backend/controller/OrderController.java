@@ -89,6 +89,31 @@ public class OrderController {
         return ResponseEntity.ok(order);
     }
 
+    /**
+     * Remove item from order (CASHIER, STAFF)
+     */
+    @DeleteMapping("/{orderId}/items/{itemId}")
+    @PreAuthorize("hasAnyRole('STAFF', 'CASHIER', 'BUSINESS_OWNER')")
+    public ResponseEntity<OrderResponse> removeItemFromOrder(
+            @PathVariable Long orderId,
+            @PathVariable Long itemId) {
+        OrderResponse order = orderService.removeItemFromOrder(orderId, itemId);
+        return ResponseEntity.ok(order);
+    }
+
+    /**
+     * Update order item quantity (CASHIER, STAFF)
+     */
+    @PutMapping("/{orderId}/items/{itemId}")
+    @PreAuthorize("hasAnyRole('STAFF', 'CASHIER', 'BUSINESS_OWNER')")
+    public ResponseEntity<OrderResponse> updateOrderItem(
+            @PathVariable Long orderId,
+            @PathVariable Long itemId,
+            @Valid @RequestBody UpdateOrderItemRequest request) {
+        OrderResponse order = orderService.updateOrderItem(orderId, itemId, request);
+        return ResponseEntity.ok(order);
+    }
+
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return (User) authentication.getPrincipal();

@@ -87,7 +87,7 @@ public class ShiftController {
      * Get shifts by date range for calendar view (BUSINESS_OWNER)
      */
     @GetMapping("/store/{storeId}/calendar")
-    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    @PreAuthorize("hasAnyRole('BUSINESS_OWNER', 'CASHIER', 'STAFF')")
     public ResponseEntity<List<ShiftResponse>> getShiftsByDateRange(
             @PathVariable Long storeId,
             @RequestParam String startDate,

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getTablesWithOrders, getOrderByTable, createCashierInvoice, getStoreQR } from '../../api/cashierApi';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import './CashierPayment.css';
 
 const CashierPayment = () => {
@@ -17,6 +19,10 @@ const CashierPayment = () => {
     const [showQRModal, setShowQRModal] = useState(false);
     const [qrData, setQrData] = useState(null);
     const [qrLoading, setQrLoading] = useState(false);
+
+    // Invoice Modal State
+    const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+    const [invoiceData, setInvoiceData] = useState(null);
 
     useEffect(() => {
         fetchTablesWithOrders();
@@ -87,27 +93,52 @@ const CashierPayment = () => {
         setProcessing(true);
         try {
             // Create invoice via API
-            await createCashierInvoice({
+            const invoice = await createCashierInvoice({
                 orderId: orderDetails.id,
                 paymentMethod: paymentMethod
             });
 
-            alert(`Thanh toán thành công cho ${selectedTable.name}!`);
+            // Set invoice data
+            setInvoiceData(invoice);
 
-            // Reset state
-            setSelectedTable(null);
-            setOrderDetails(null);
-            setPaymentMethod('CASH');
+            // Show success and open Invoice Modal
+            // alert(`Thanh toán thành công cho ${selectedTable.name}!`); // Removed alert, showing modal instead
+
+            // Reset selection state but keep table info for modal if needed
+            // Don't reset everything yet, wait until modal is closed
             setShowQRModal(false);
+            setShowInvoiceModal(true);
 
-            // Refresh tables list
-            await fetchTablesWithOrders();
         } catch (error) {
             console.error('Error processing payment:', error);
             alert('Có lỗi xảy ra khi thanh toán. Vui lòng thử lại!');
         } finally {
             setProcessing(false);
         }
+    };
+
+    const handleCloseInvoiceModal = () => {
+        setShowInvoiceModal(false);
+        setInvoiceData(null);
+        setSelectedTable(null);
+        setOrderDetails(null);
+        setPaymentMethod('CASH');
+        fetchTablesWithOrders();
+    };
+
+    const handleExportPDF = () => {
+        const input = document.getElementById('invoice-content');
+        if (!input) return;
+
+        html2canvas(input, { scale: 2 }).then((canvas) => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`Invoice_${invoiceData.id || 'new'}.pdf`);
+        });
     };
 
     const handlePrintInvoice = () => {
@@ -275,6 +306,64 @@ const CashierPayment = () => {
                                 disabled={processing}
                             >
                                 {processing ? 'Đang xác nhận...' : 'Đã thanh toán - Xuất Hóa Đơn'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Invoice Modal */}
+            {showInvoiceModal && invoiceData && (
+                <div className="modal-overlay">
+                    <div className="modal-content invoice-modal">
+                        <div className="modal-header">
+                            <h3>Hóa đơn thanh toán</h3>
+                            <button className="close-btn" onClick={handleCloseInvoiceModal}>✕</button>
+                        </div>
+                        <div className="modal-body" id="invoice-content">
+                            <div className="invoice-header">
+                                <h2>SMARTBIZ</h2>
+                                <p>Hóa đơn bán hàng</p>
+                                <p className="invoice-date">{new Date().toLocaleString('vi-VN')}</p>
+                                <p>Mã hóa đơn: #{invoiceData.id}</p>
+                                <p>Bàn: {selectedTable?.name}</p>
+                            </div>
+
+                            <table className="invoice-table">
+                                <thead>
+                                    <tr>
+                                        <th>Món</th>
+                                        <th>SL</th>
+                                        <th>Đơn giá</th>
+                                        <th>Thành tiền</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {invoiceData.order.items.map((item, index) => (
+                                        <tr key={index}>
+                                            <td>{item.menuItemName}</td>
+                                            <td>{item.quantity}</td>
+                                            <td>{formatCurrency(item.price)}</td>
+                                            <td>{formatCurrency(item.subtotal)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+
+                            <div className="invoice-footer">
+                                <div className="total-row">
+                                    <span>Tổng cộng:</span>
+                                    <span className="amount">{formatCurrency(invoiceData.totalAmount)}</span>
+                                </div>
+                                <p className="payment-method-info">
+                                    Thanh toán: {invoiceData.paymentMethod === 'CASH' ? 'Tiền mặt' : 'Chuyển khoản / QR'}
+                                </p>
+                                <p className="thank-you">Cảm ơn quý khách!</p>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn-secondary" onClick={handleCloseInvoiceModal}>Đóng</button>
+                            <button className="btn-primary" onClick={handleExportPDF}>
+                                📥 Xuất PDF
                             </button>
                         </div>
                     </div>

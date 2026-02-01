@@ -55,6 +55,53 @@ public class TableService {
     }
 
     /**
+     * Bulk create tables with auto-generated names (BUSINESS_OWNER only)
+     */
+    @Transactional
+    public List<TableResponse> bulkCreateTables(UUID ownerId, BulkCreateTablesRequest request) {
+        Store store = storeRepository.findById(request.getStoreId())
+                .orElseThrow(() -> new ResourceNotFoundException("Store not found with id: " + request.getStoreId()));
+
+        // Verify ownership
+        if (!store.getOwner().getId().equals(ownerId)) {
+            throw new UnauthorizedException("You don't have permission to create tables for this store");
+        }
+
+        // Determine starting number
+        int startNumber = request.getStartNumber() != null ? request.getStartNumber() : 1;
+
+        // If startNumber is not provided, find the next available number
+        if (request.getStartNumber() == null) {
+            List<Tables> existingTables = tablesRepository.findByStoreId(request.getStoreId());
+            // Find highest table number
+            int maxNumber = existingTables.stream()
+                    .map(Tables::getName)
+                    .filter(name -> name.matches("Bàn \\d+"))
+                    .map(name -> name.replaceAll("Bàn ", ""))
+                    .mapToInt(Integer::parseInt)
+                    .max()
+                    .orElse(0);
+            startNumber = maxNumber + 1;
+        }
+
+        // Create tables
+        List<Tables> tables = new java.util.ArrayList<>();
+        for (int i = 0; i < request.getCount(); i++) {
+            Tables table = Tables.builder()
+                    .store(store)
+                    .name("Bàn " + (startNumber + i))
+                    .status(TableStatus.EMPTY)
+                    .build();
+            tables.add(table);
+        }
+
+        List<Tables> savedTables = tablesRepository.saveAll(tables);
+        return savedTables.stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Update table status (STAFF, CASHIER can update)
      */
     @Transactional
@@ -88,9 +135,8 @@ public class TableService {
      */
     private TableResponse convertToResponse(Tables table) {
         // Find current active order for this table
-        Long currentOrderId = orderRepository.findActiveOrderByTableId(table.getId())
-                .map(Order::getId)
-                .orElse(null);
+        List<Order> activeOrders = orderRepository.findActiveOrderByTableId(table.getId());
+        Long currentOrderId = activeOrders.isEmpty() ? null : activeOrders.get(0).getId();
 
         return TableResponse.builder()
                 .id(table.getId())

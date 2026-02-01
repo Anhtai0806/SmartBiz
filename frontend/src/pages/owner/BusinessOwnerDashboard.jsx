@@ -7,6 +7,7 @@ import OwnerReports from './OwnerReports';
 import SchedulePage from './SchedulePage';
 import OwnerCategories from './OwnerCategories';
 import OwnerQRPayment from './OwnerQRPayment';
+import Profile from './Profile';
 import './BusinessOwnerDashboard.css';
 
 const BusinessOwnerDashboard = () => {
@@ -57,13 +58,18 @@ const BusinessOwnerDashboard = () => {
                 </nav>
 
                 <div className="header-actions">
-                    <div className="user-info">
-                        <span className="user-name">{userName}</span>
-                        <span className="user-role">Business Owner</span>
+                    <div className="user-dropdown-container">
+                        <div className="user-info">
+                            <span className="user-name">{userName}</span>
+                            <span className="user-role">Business Owner</span>
+                        </div>
+                        <div className="user-dropdown-menu">
+                            <Link to="/owner/profile" className="dropdown-item">Tài khoản của tôi</Link>
+                            <button className="dropdown-item" onClick={handleLogout}>
+                                Đăng xuất
+                            </button>
+                        </div>
                     </div>
-                    <button className="logout-btn" onClick={handleLogout}>
-                        Đăng xuất
-                    </button>
                     <button
                         className="mobile-menu-toggle"
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -83,6 +89,7 @@ const BusinessOwnerDashboard = () => {
                     <Route path="/qr-payment" element={<OwnerQRPayment />} />
                     <Route path="/reports" element={<OwnerReports />} />
                     <Route path="/schedule" element={<SchedulePage />} />
+                    <Route path="/profile" element={<Profile />} />
                 </Routes>
             </main>
         </div>

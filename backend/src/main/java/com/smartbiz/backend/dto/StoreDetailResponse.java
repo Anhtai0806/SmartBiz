@@ -18,8 +18,13 @@ public class StoreDetailResponse {
     private Long id;
     private String name;
     private String address;
+    private String phone;
+    private java.math.BigDecimal taxRate;
+    private java.time.LocalTime openingTime;
+    private java.time.LocalTime closingTime;
     private UUID ownerId;
     private String ownerName;
+    private String status;
     private List<UserResponse> staffMembers;
     private List<MenuItemResponse> menuItems;
     private List<TableResponse> tables;

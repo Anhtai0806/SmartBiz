@@ -9,6 +9,7 @@ import Register from './pages/Register';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import BusinessOwnerDashboard from './pages/owner/BusinessOwnerDashboard';
 import CashierDashboard from './pages/cashier/CashierDashboard';
+import StaffDashboard from './pages/staff/StaffDashboard';
 import './App.css';
 
 function App() {
@@ -60,13 +61,10 @@ function App() {
             </PrivateRoute>
           } />
 
-          {/* Staff routes - placeholder */}
-          <Route path="/staff/dashboard" element={
-            <PrivateRoute>
-              <div style={{ padding: '40px', textAlign: 'center' }}>
-                <h1>Staff Dashboard</h1>
-                <p>Coming soon...</p>
-              </div>
+          {/* Staff routes - protected */}
+          <Route path="/staff/*" element={
+            <PrivateRoute requiredRole="STAFF">
+              <StaffDashboard />
             </PrivateRoute>
           } />
         </Routes>

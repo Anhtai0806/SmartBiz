@@ -3,6 +3,7 @@ package com.smartbiz.backend.service;
 import com.smartbiz.backend.dto.DashboardStatsResponse;
 import com.smartbiz.backend.dto.MenuCategoryRequest;
 import com.smartbiz.backend.dto.MenuCategoryResponse;
+import com.smartbiz.backend.dto.MonthlyRegistrationData;
 import com.smartbiz.backend.dto.StoreResponse;
 import com.smartbiz.backend.dto.UpdateUserStatusRequest;
 import com.smartbiz.backend.dto.UserResponse;
@@ -21,9 +22,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -120,14 +122,15 @@ public class AdminService {
                 .count();
         long inactiveUsers = totalUsers - activeUsers;
 
-        // Count users by role
-        Map<String, Long> usersByRole = new HashMap<>();
-        for (Role role : Role.values()) {
-            long count = allUsers.stream()
-                    .filter(user -> user.getRole() == role)
-                    .count();
-            usersByRole.put(role.name(), count);
-        }
+        // Calculate new business owners this month
+        LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+        long newBusinessOwnersThisMonth = allUsers.stream()
+                .filter(user -> user.getRole() == Role.BUSINESS_OWNER)
+                .filter(user -> user.getCreatedAt().isAfter(startOfMonth))
+                .count();
+
+        // Calculate business owner trend for the past 6 months
+        List<MonthlyRegistrationData> businessOwnerTrend = calculateBusinessOwnerTrend(allUsers);
 
         long totalStores = storeRepository.count();
 
@@ -136,7 +139,8 @@ public class AdminService {
                 .totalStores(totalStores)
                 .activeUsers(activeUsers)
                 .inactiveUsers(inactiveUsers)
-                .usersByRole(usersByRole)
+                .newBusinessOwnersThisMonth(newBusinessOwnersThisMonth)
+                .businessOwnerTrend(businessOwnerTrend)
                 .build();
     }
 
@@ -292,5 +296,62 @@ public class AdminService {
                 .name(category.getName())
                 .itemCount(menuItemRepository.countByCategoryId(category.getId()))
                 .build();
+    }
+
+    /**
+     * Calculate business owner registration trend for the past 6 months
+     * 
+     * @param allUsers List of all users
+     * @return List of monthly registration data
+     */
+    private List<MonthlyRegistrationData> calculateBusinessOwnerTrend(List<User> allUsers) {
+        List<MonthlyRegistrationData> trend = new ArrayList<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM yyyy");
+
+        // Get business owners only
+        List<User> businessOwners = allUsers.stream()
+                .filter(user -> user.getRole() == Role.BUSINESS_OWNER)
+                .collect(Collectors.toList());
+
+        // Calculate for the past 6 months
+        for (int i = 5; i >= 0; i--) {
+            LocalDateTime monthStart = LocalDateTime.now().minusMonths(i).withDayOfMonth(1).withHour(0).withMinute(0)
+                    .withSecond(0);
+            LocalDateTime monthEnd = monthStart.plusMonths(1);
+
+            long count = businessOwners.stream()
+                    .filter(user -> user.getCreatedAt().isAfter(monthStart) && user.getCreatedAt().isBefore(monthEnd))
+                    .count();
+
+            String monthLabel = monthStart.format(formatter);
+            trend.add(MonthlyRegistrationData.builder()
+                    .month(monthLabel)
+                    .count(count)
+                    .build());
+        }
+
+        return trend;
+    }
+
+    /**
+     * Get all stores owned by a specific business owner - ADMIN only
+     * 
+     * @param ownerId Business owner user ID
+     * @return List of stores owned by the business owner
+     */
+    public List<StoreResponse> getStoresByOwnerId(UUID ownerId) {
+        // Verify user exists and is a business owner
+        User owner = userRepository.findById(ownerId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + ownerId));
+
+        if (owner.getRole() != Role.BUSINESS_OWNER) {
+            throw new InvalidRoleException("User is not a business owner");
+        }
+
+        // Get all stores owned by this user
+        List<Store> stores = storeRepository.findByOwnerId(ownerId);
+        return stores.stream()
+                .map(this::convertToStoreResponse)
+                .collect(Collectors.toList());
     }
 }

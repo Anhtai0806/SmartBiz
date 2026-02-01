@@ -26,7 +26,7 @@ public class InvoiceController {
      */
     @PostMapping
     @PreAuthorize("hasAnyRole('CASHIER', 'BUSINESS_OWNER')")
-    public ResponseEntity<InvoiceResponse> createInvoice(@Valid @RequestBody InvoiceRequest request) {
+    public ResponseEntity<InvoiceResponse> createInvoice(@Valid @RequestBody CreateInvoiceRequest request) {
         InvoiceResponse invoice = invoiceService.createInvoice(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(invoice);
     }

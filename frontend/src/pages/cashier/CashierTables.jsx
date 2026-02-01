@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getTablesByStore, getOrderByTable } from '../../api/cashierApi';
+import { getTablesByStore, getOrderByTable, updateTableStatus, updateOrderStatus } from '../../api/cashierApi';
 import { useNavigate } from 'react-router-dom';
 import OrderManagement from './OrderManagement';
 import './CashierTables.css';
@@ -89,6 +89,45 @@ const CashierTables = () => {
         setSelectedTable(null);
         setSelectedOrder(null);
         fetchTables(); // Refresh tables
+    };
+
+    const handleCleanTable = async () => {
+        if (!selectedTable) return;
+
+        if (window.confirm(`Xác nhận đã dọn dẹp bàn ${selectedTable.name}?`)) {
+            try {
+                await updateTableStatus(selectedTable.id, 'EMPTY');
+                alert(`Bàn ${selectedTable.name} đã sẵn sàng đón khách!`);
+                closeModal();
+                fetchTables();
+            } catch (error) {
+                console.error('Error updating table status:', error);
+                alert('Không thể cập nhật trạng thái bàn. Vui lòng thử lại.');
+            }
+        }
+    };
+
+    const handlePaymentClick = async () => {
+        if (!selectedTable || !selectedOrder) return;
+
+        try {
+            setLoading(true);
+
+            // Update order status to DONE if not already
+            if (selectedOrder.status !== 'DONE') {
+                await updateOrderStatus(selectedOrder.id, 'DONE');
+            }
+
+            // Update table status to WAITING_PAYMENT
+            await updateTableStatus(selectedTable.id, 'WAITING_PAYMENT');
+
+            // Navigate to payment page
+            navigate('/cashier/payment');
+        } catch (error) {
+            console.error('Error preparing payment:', error);
+            alert('Không thể chuẩn bị thanh toán. Vui lòng thử lại.');
+            setLoading(false);
+        }
     };
 
 
@@ -230,7 +269,8 @@ const CashierTables = () => {
                                         </button>
                                         <button
                                             className="btn-success"
-                                            onClick={() => navigate('/cashier/payment')}
+                                            onClick={handlePaymentClick}
+                                            disabled={loading}
                                         >
                                             💳 Thanh toán
                                         </button>
@@ -243,6 +283,15 @@ const CashierTables = () => {
                                         onClick={() => navigate('/cashier/payment')}
                                     >
                                         💳 Thanh toán
+                                    </button>
+                                )}
+
+                                {selectedTable.status === 'PAID' && (
+                                    <button
+                                        className="btn-primary" // Reusing primary style or create a new clean style
+                                        onClick={handleCleanTable}
+                                    >
+                                        🧹 Xác nhận dọn dẹp
                                     </button>
                                 )}
                             </div>

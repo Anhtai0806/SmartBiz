@@ -1,16 +1,14 @@
 package com.smartbiz.backend.service;
 
-import com.smartbiz.backend.dto.*;
+import com.smartbiz.backend.dto.CreateInvoiceRequest;
+import com.smartbiz.backend.dto.InvoiceResponse;
 import com.smartbiz.backend.entity.*;
-import com.smartbiz.backend.exception.ResourceNotFoundException;
 import com.smartbiz.backend.repository.*;
+import com.smartbiz.backend.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,26 +16,33 @@ public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
     private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
-    private final TablesRepository tablesRepository;
+    private final TablesRepository tableRepository;
     private final OrderService orderService;
 
-    /**
-     * Create invoice and process payment (CASHIER)
-     */
     @Transactional
-    public InvoiceResponse createInvoice(InvoiceRequest request) {
+    public InvoiceResponse createInvoice(CreateInvoiceRequest request) {
         Order order = orderRepository.findById(request.getOrderId())
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + request.getOrderId()));
 
+        Tables table = order.getTable();
+
+        // Validate table status
+        if (table.getStatus() != TableStatus.SERVING && table.getStatus() != TableStatus.WAITING_PAYMENT) {
+            throw new IllegalStateException("Table must be in SERVING or WAITING_PAYMENT status to create invoice");
+        }
+
+        // Ensure order has items
+        if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
+            throw new IllegalStateException("Cannot create invoice for empty order");
+        }
+
         // Check if invoice already exists
-        if (order.getInvoice() != null) {
+        if (invoiceRepository.existsByOrderId(order.getId())) {
             throw new IllegalStateException("Invoice already exists for this order");
         }
 
-        // Calculate total amount
-        List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
-        BigDecimal totalAmount = items.stream()
+        // Calculate Total Amount
+        BigDecimal totalAmount = order.getOrderItems().stream()
                 .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -48,49 +53,39 @@ public class InvoiceService {
                 .paymentMethod(request.getPaymentMethod())
                 .build();
 
-        Invoice saved = invoiceRepository.save(invoice);
+        Invoice savedInvoice = invoiceRepository.save(invoice);
 
-        // Update order status to DONE
+        // Update Order Status
         order.setStatus(OrderStatus.DONE);
         orderRepository.save(order);
 
-        // Update table status to PAID
-        Tables table = order.getTable();
+        // Update Table Status to PAID
         table.setStatus(TableStatus.PAID);
-        tablesRepository.save(table);
+        tableRepository.save(table);
 
-        return convertToResponse(saved);
+        return convertToInvoiceResponse(savedInvoice);
     }
 
-    /**
-     * Get invoice by order ID
-     */
-    public InvoiceResponse getInvoiceByOrder(Long orderId) {
-        Invoice invoice = invoiceRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found for order: " + orderId));
-        return convertToResponse(invoice);
-    }
-
-    /**
-     * Get invoices by store
-     */
-    public List<InvoiceResponse> getInvoicesByStore(Long storeId) {
-        List<Invoice> invoices = invoiceRepository.findByOrderTableStoreId(storeId);
-        return invoices.stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
-    }
-
-    private InvoiceResponse convertToResponse(Invoice invoice) {
-        OrderResponse orderResponse = orderService.convertToResponse(invoice.getOrder());
-
+    private InvoiceResponse convertToInvoiceResponse(Invoice invoice) {
         return InvoiceResponse.builder()
                 .id(invoice.getId())
                 .orderId(invoice.getOrder().getId())
                 .totalAmount(invoice.getTotalAmount())
                 .paymentMethod(invoice.getPaymentMethod())
                 .createdAt(invoice.getCreatedAt())
-                .order(orderResponse)
+                .order(orderService.convertToResponse(invoice.getOrder()))
                 .build();
+    }
+
+    public InvoiceResponse getInvoiceByOrder(Long orderId) {
+        Invoice invoice = invoiceRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found for order id: " + orderId));
+        return convertToInvoiceResponse(invoice);
+    }
+
+    public java.util.List<InvoiceResponse> getInvoicesByStore(Long storeId) {
+        return invoiceRepository.findByStoreId(storeId).stream()
+                .map(this::convertToInvoiceResponse)
+                .collect(java.util.stream.Collectors.toList());
     }
 }

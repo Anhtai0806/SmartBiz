@@ -8,6 +8,7 @@ import com.smartbiz.backend.exception.ResourceNotFoundException;
 import com.smartbiz.backend.exception.UnauthorizedException;
 import com.smartbiz.backend.repository.MenuCategoryRepository;
 import com.smartbiz.backend.repository.MenuItemRepository;
+import com.smartbiz.backend.repository.QRPaymentCodeRepository;
 import com.smartbiz.backend.repository.StoreRepository;
 import com.smartbiz.backend.repository.UserRepository;
 import com.smartbiz.backend.repository.WorkShiftRepository;
@@ -30,6 +31,7 @@ public class BusinessOwnerService {
     private final MenuCategoryRepository menuCategoryRepository;
     private final MenuItemRepository menuItemRepository;
     private final WorkShiftRepository workShiftRepository;
+    private final QRPaymentCodeRepository qrPaymentCodeRepository;
 
     /**
      * Create a new store for the business owner
@@ -54,11 +56,57 @@ public class BusinessOwnerService {
                 .owner(owner)
                 .name(request.getName())
                 .address(request.getAddress())
+                .phone(request.getPhone())
+                .taxRate(request.getTaxRate())
+                .openingTime(request.getOpeningTime())
+                .closingTime(request.getClosingTime())
                 .build();
 
         Store savedStore = storeRepository.save(store);
 
         return convertToStoreResponse(savedStore);
+    }
+
+    /**
+     * Update store information (name, address, status)
+     * 
+     * @param ownerId Owner's user ID
+     * @param storeId Store ID
+     * @param request Update store request
+     * @return Updated store response
+     */
+    @Transactional
+    public StoreResponse updateStore(UUID ownerId, Long storeId, UpdateStoreRequest request) {
+        // Find store
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + storeId));
+
+        // Verify ownership
+        if (!store.getOwner().getId().equals(ownerId)) {
+            throw new UnauthorizedException("You can only update your own stores");
+        }
+
+        // Update fields
+        store.setName(request.getName());
+        store.setAddress(request.getAddress());
+        store.setPhone(request.getPhone());
+        store.setTaxRate(request.getTaxRate());
+        store.setOpeningTime(request.getOpeningTime());
+        store.setClosingTime(request.getClosingTime());
+
+        // Update status if provided
+        if (request.getStatus() != null) {
+            Status newStatus;
+            try {
+                newStatus = Status.valueOf(request.getStatus().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new InvalidRoleException("Invalid status. Must be ACTIVE or INACTIVE");
+            }
+            store.setStatus(newStatus);
+        }
+
+        Store updatedStore = storeRepository.save(store);
+        return convertToStoreResponse(updatedStore);
     }
 
     /**
@@ -103,6 +151,8 @@ public class BusinessOwnerService {
                 .fullName(request.getFullName())
                 .role(role)
                 .status(Status.ACTIVE)
+                .salaryType(request.getSalaryType())
+                .salaryAmount(request.getSalaryAmount())
                 .build();
 
         User savedStaff = userRepository.save(staff);
@@ -199,6 +249,63 @@ public class BusinessOwnerService {
     }
 
     /**
+     * Update staff information
+     * Only owner can update staff for their stores
+     *
+     * @param ownerId Owner's user ID
+     * @param staffId Staff user ID
+     * @param request Update staff request
+     * @return Updated user response
+     */
+    @Transactional
+    public UserResponse updateStaff(UUID ownerId, UUID staffId, UpdateStaffRequest request) {
+        // Verify owner exists
+        userRepository.findById(ownerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Owner not found"));
+
+        // Verify staff exists
+        User staff = userRepository.findById(staffId)
+                .orElseThrow(() -> new ResourceNotFoundException("Staff not found with ID: " + staffId));
+
+        // Validate staff role
+        if (staff.getRole() != Role.STAFF && staff.getRole() != Role.CASHIER) {
+            throw new InvalidRoleException("Can only update STAFF or CASHIER");
+        }
+
+        // Verify staff belongs to one of owner's stores
+        List<Store> ownerStores = storeRepository.findByOwnerId(ownerId);
+        boolean staffBelongsToOwner = ownerStores.stream()
+                .anyMatch(store -> store.getStaffMembers().contains(staff));
+
+        if (!staffBelongsToOwner) {
+            throw new UnauthorizedException("You can only update staff in your stores");
+        }
+
+        // Update fields if provided
+        if (request.getFullName() != null)
+            staff.setFullName(request.getFullName());
+        if (request.getEmail() != null) {
+            // Check if email changed and is unique
+            if (!staff.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
+                throw new EmailOrPhoneAlreadyExistsException("Email already exists: " + request.getEmail());
+            }
+            staff.setEmail(request.getEmail());
+        }
+        if (request.getPhone() != null)
+            staff.setPhone(request.getPhone());
+        if (request.getPassword() != null && !request.getPassword().isEmpty()) {
+            staff.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+        if (request.getSalaryType() != null)
+            staff.setSalaryType(request.getSalaryType());
+        if (request.getSalaryAmount() != null)
+            staff.setSalaryAmount(request.getSalaryAmount());
+
+        User updatedStaff = userRepository.save(staff);
+        return convertToUserResponse(updatedStaff);
+    }
+
+    /**
      * Get all stores owned by the business owner
      * 
      * @param ownerId Owner's user ID
@@ -272,8 +379,13 @@ public class BusinessOwnerService {
                 .id(store.getId())
                 .name(store.getName())
                 .address(store.getAddress())
+                .phone(store.getPhone())
+                .taxRate(store.getTaxRate())
+                .openingTime(store.getOpeningTime())
+                .closingTime(store.getClosingTime())
                 .ownerId(store.getOwner().getId())
                 .ownerName(store.getOwner().getFullName())
+                .status(store.getStatus() != null ? store.getStatus().name() : "ACTIVE")
                 .staffMembers(staffResponses)
                 .menuItems(menuItemResponses)
                 .tables(tableResponses)
@@ -518,8 +630,13 @@ public class BusinessOwnerService {
                 .id(store.getId())
                 .name(store.getName())
                 .address(store.getAddress())
+                .phone(store.getPhone())
+                .taxRate(store.getTaxRate())
+                .openingTime(store.getOpeningTime())
+                .closingTime(store.getClosingTime())
                 .ownerId(store.getOwner().getId())
                 .ownerName(store.getOwner().getFullName())
+                .status(store.getStatus() != null ? store.getStatus().name() : "ACTIVE")
                 .createdAt(store.getCreatedAt())
                 .build();
     }
@@ -534,6 +651,8 @@ public class BusinessOwnerService {
                 .fullName(user.getFullName())
                 .role(user.getRole().name())
                 .status(user.getStatus().name())
+                .salaryType(user.getSalaryType())
+                .salaryAmount(user.getSalaryAmount())
                 .createdAt(user.getCreatedAt())
                 .build();
     }
@@ -685,6 +804,109 @@ public class BusinessOwnerService {
                 .name(table.getName())
                 .status(table.getStatus())
                 .currentOrderId(null) // Will be populated by TableService if needed
+                .build();
+    }
+
+    /**
+     * Get QR payment code for business owner
+     * 
+     * @param userId Owner's user ID
+     * @return QR payment code response or null if not found
+     */
+    public QRPaymentResponse getQRPaymentCode(UUID userId) {
+        return qrPaymentCodeRepository.findByUserId(userId)
+                .map(this::convertToQRPaymentResponse)
+                .orElse(null);
+    }
+
+    /**
+     * Create QR payment code for business owner
+     * Enforces single image constraint - only one QR code per user
+     * 
+     * @param userId  Owner's user ID
+     * @param request QR payment request
+     * @return Created QR payment code response
+     */
+    @Transactional
+    public QRPaymentResponse createQRPaymentCode(UUID userId, QRPaymentRequest request) {
+        // Verify user exists and is a business owner
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (user.getRole() != Role.BUSINESS_OWNER) {
+            throw new InvalidRoleException("Only BUSINESS_OWNER can create QR payment codes");
+        }
+
+        // Check if user already has a QR code
+        if (qrPaymentCodeRepository.existsByUserId(userId)) {
+            throw new InvalidRoleException("QR payment code already exists. Please update or delete the existing one.");
+        }
+
+        QRPaymentCode qrCode = QRPaymentCode.builder()
+                .user(user)
+                .imageData(request.getImageData())
+                .imageName(request.getImageName())
+                .imageType(request.getImageType())
+                .build();
+
+        QRPaymentCode savedQRCode = qrPaymentCodeRepository.save(qrCode);
+        return convertToQRPaymentResponse(savedQRCode);
+    }
+
+    /**
+     * Update QR payment code for business owner
+     * 
+     * @param userId  Owner's user ID
+     * @param request QR payment request
+     * @return Updated QR payment code response
+     */
+    @Transactional
+    public QRPaymentResponse updateQRPaymentCode(UUID userId, QRPaymentRequest request) {
+        QRPaymentCode qrCode = qrPaymentCodeRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("QR payment code not found"));
+
+        // Verify ownership
+        if (!qrCode.getUser().getId().equals(userId)) {
+            throw new UnauthorizedException("You can only update your own QR payment code");
+        }
+
+        qrCode.setImageData(request.getImageData());
+        qrCode.setImageName(request.getImageName());
+        qrCode.setImageType(request.getImageType());
+
+        QRPaymentCode updatedQRCode = qrPaymentCodeRepository.save(qrCode);
+        return convertToQRPaymentResponse(updatedQRCode);
+    }
+
+    /**
+     * Delete QR payment code for business owner
+     * 
+     * @param userId Owner's user ID
+     */
+    @Transactional
+    public void deleteQRPaymentCode(UUID userId) {
+        QRPaymentCode qrCode = qrPaymentCodeRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("QR payment code not found"));
+
+        // Verify ownership
+        if (!qrCode.getUser().getId().equals(userId)) {
+            throw new UnauthorizedException("You can only delete your own QR payment code");
+        }
+
+        qrPaymentCodeRepository.delete(qrCode);
+    }
+
+    /**
+     * Convert QRPaymentCode entity to QRPaymentResponse DTO
+     */
+    private QRPaymentResponse convertToQRPaymentResponse(QRPaymentCode qrCode) {
+        return QRPaymentResponse.builder()
+                .id(qrCode.getId())
+                .imageData(qrCode.getImageData())
+                .imageName(qrCode.getImageName())
+                .imageType(qrCode.getImageType())
+                .createdAt(qrCode.getCreatedAt())
+                .updatedAt(qrCode.getUpdatedAt())
                 .build();
     }
 }

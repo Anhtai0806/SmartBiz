@@ -110,4 +110,17 @@ public class AdminController {
         adminService.deleteUser(userId);
         return ResponseEntity.ok("User deleted successfully");
     }
+
+    /**
+     * Get stores owned by a specific business owner - ADMIN only
+     * 
+     * @param userId Business owner user ID
+     * @return List of stores owned by the business owner
+     */
+    @GetMapping("/users/{userId}/stores")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<StoreResponse>> getStoresByOwnerId(@PathVariable UUID userId) {
+        List<StoreResponse> stores = adminService.getStoresByOwnerId(userId);
+        return ResponseEntity.ok(stores);
+    }
 }

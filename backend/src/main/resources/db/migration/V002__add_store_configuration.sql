@@ -1,0 +1,4 @@
+ALTER TABLE stores ADD COLUMN opening_time TIME;
+ALTER TABLE stores ADD COLUMN closing_time TIME;
+ALTER TABLE stores ADD COLUMN tax_rate DECIMAL(5,2);
+ALTER TABLE stores ADD COLUMN phone VARCHAR(20);

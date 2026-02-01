@@ -1,8 +1,11 @@
 package com.smartbiz.backend.service;
 
+import com.smartbiz.backend.dto.ChangePasswordRequest;
 import com.smartbiz.backend.dto.LoginRequest;
 import com.smartbiz.backend.dto.LoginResponse;
 import com.smartbiz.backend.dto.RegisterRequest;
+import com.smartbiz.backend.dto.UpdateProfileRequest;
+import com.smartbiz.backend.dto.UserResponse;
 import com.smartbiz.backend.entity.Status;
 import com.smartbiz.backend.entity.User;
 import com.smartbiz.backend.repository.UserRepository;
@@ -44,6 +47,7 @@ public class AuthService {
                                 .fullName(user.getFullName())
                                 .role(user.getRole().name())
                                 .status(user.getStatus().name())
+                                .storeId(user.getStaffStores().isEmpty() ? null : user.getStaffStores().get(0).getId())
                                 .build();
         }
 
@@ -86,5 +90,46 @@ public class AuthService {
                                 .role(savedUser.getRole().name())
                                 .status(savedUser.getStatus().name())
                                 .build();
+        }
+
+        public UserResponse updateProfile(java.util.UUID userId, UpdateProfileRequest request) {
+                User user = userRepository.findById(userId)
+                                .orElseThrow(() -> new RuntimeException("User not found"));
+
+                // Check if phone is being changed and if it already exists for another user
+                if (!user.getPhone().equals(request.getPhone()) &&
+                                userRepository.findByPhone(request.getPhone()).isPresent()) {
+                        throw new RuntimeException("Phone number already in use");
+                }
+
+                user.setFullName(request.getFullName());
+                user.setPhone(request.getPhone());
+
+                User updatedUser = userRepository.save(user);
+
+                return UserResponse.builder()
+                                .id(updatedUser.getId())
+                                .email(updatedUser.getEmail())
+                                .fullName(updatedUser.getFullName())
+                                .role(updatedUser.getRole().name())
+                                .status(updatedUser.getStatus().name())
+                                .createdAt(updatedUser.getCreatedAt())
+                                .build();
+        }
+
+        public void changePassword(java.util.UUID userId, ChangePasswordRequest request) {
+                if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+                        throw new RuntimeException("Passwords do not match");
+                }
+
+                User user = userRepository.findById(userId)
+                                .orElseThrow(() -> new RuntimeException("User not found"));
+
+                if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+                        throw new RuntimeException("Incorrect current password");
+                }
+
+                user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+                userRepository.save(user);
         }
 }
