@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getTablesByStore, getOrderByTable, updateTableStatus } from '../../api/staffApi';
+import { getTablesByStore, getOrderByTable, updateTableStatus, checkStaffWorkingHours } from '../../api/staffApi';
 import OrderManagement from '../cashier/OrderManagement';
 import './StaffTables.css';
 
@@ -11,11 +11,17 @@ const StaffTables = () => {
     const [error, setError] = useState(null);
     const [filterStatus, setFilterStatus] = useState('ALL');
     const [showOrderManagement, setShowOrderManagement] = useState(false);
+    const [isInWorkingHours, setIsInWorkingHours] = useState(true);
+    const [workingHoursMessage, setWorkingHoursMessage] = useState('');
 
     useEffect(() => {
         fetchTables();
+        checkWorkingHours();
         // Auto-refresh every 30 seconds
-        const interval = setInterval(fetchTables, 30000);
+        const interval = setInterval(() => {
+            fetchTables();
+            checkWorkingHours();
+        }, 30000);
         return () => clearInterval(interval);
     }, []);
 
@@ -31,6 +37,23 @@ const StaffTables = () => {
             console.error('Error fetching tables:', error);
             setError('Không thể tải danh sách bàn. Vui lòng thử lại.');
             setLoading(false);
+        }
+    };
+
+    const checkWorkingHours = async () => {
+        try {
+            const response = await checkStaffWorkingHours();
+            setIsInWorkingHours(response.isInWorkingHours);
+            if (!response.isInWorkingHours) {
+                setWorkingHoursMessage('Bạn chỉ có thể xem thông tin bàn ngoài giờ làm việc.');
+            } else {
+                setWorkingHoursMessage('');
+            }
+        } catch (error) {
+            console.error('Error checking working hours:', error);
+            // If error checking, assume not in working hours for safety
+            setIsInWorkingHours(false);
+            setWorkingHoursMessage('Không thể xác định ca làm việc. Vui lòng liên hệ quản lý.');
         }
     };
 
@@ -79,6 +102,22 @@ const StaffTables = () => {
         setSelectedOrder(order);
         setShowOrderManagement(false);
         fetchTables();
+    };
+
+    const handleCleanTable = async () => {
+        if (!selectedTable) return;
+
+        if (window.confirm(`Xác nhận đã dọn dẹp bàn ${selectedTable.name}?`)) {
+            try {
+                await updateTableStatus(selectedTable.id, 'EMPTY');
+                alert(`Bàn ${selectedTable.name} đã sẵn sàng đón khách!`);
+                closeModal();
+                fetchTables();
+            } catch (error) {
+                console.error('Error updating table status:', error);
+                alert('Không thể cập nhật trạng thái bàn. Vui lòng thử lại.');
+            }
+        }
     };
 
     const getStatusBadgeClass = (status) => {
@@ -138,6 +177,13 @@ const StaffTables = () => {
                 </button>
             </div>
 
+            {/* Working Hours Warning Banner */}
+            {!isInWorkingHours && workingHoursMessage && (
+                <div className="working-hours-banner">
+                    ⚠️ {workingHoursMessage}
+                </div>
+            )}
+
             {/* Filter Tabs */}
             <div className="filter-tabs">
                 <button
@@ -157,6 +203,12 @@ const StaffTables = () => {
                     onClick={() => setFilterStatus('SERVING')}
                 >
                     Đang phục vụ ({tables.filter(t => t.status === 'SERVING').length})
+                </button>
+                <button
+                    className={`filter-tab ${filterStatus === 'PAID' ? 'active' : ''}`}
+                    onClick={() => setFilterStatus('PAID')}
+                >
+                    Đã thanh toán ({tables.filter(t => t.status === 'PAID').length})
                 </button>
             </div>
 
@@ -198,44 +250,99 @@ const StaffTables = () => {
                                         {getStatusText(selectedTable.status)}
                                     </span>
                                 </div>
-                                {selectedOrder && (
-                                    <>
-                                        <div className="info-row">
-                                            <span className="info-label">Order ID:</span>
-                                            <span>#{selectedOrder.id}</span>
+                                {selectedOrder && selectedOrder.items && selectedOrder.items.length > 0 && (
+                                    <div className="order-items-section">
+                                        <h4 className="order-items-title">Các món đã order:</h4>
+                                        <div className="order-items-list">
+                                            {selectedOrder.items.map((item, index) => (
+                                                <div key={index} className="order-item-row">
+                                                    <div className="item-info">
+                                                        <span className="item-name">{item.menuItemName}</span>
+                                                        <span className="item-quantity">x{item.quantity}</span>
+                                                    </div>
+                                                    <div className="item-pricing">
+                                                        <span className="item-price">
+                                                            {new Intl.NumberFormat('vi-VN', {
+                                                                style: 'currency',
+                                                                currency: 'VND'
+                                                            }).format(item.price)}
+                                                        </span>
+                                                        <span className="item-subtotal">
+                                                            {new Intl.NumberFormat('vi-VN', {
+                                                                style: 'currency',
+                                                                currency: 'VND'
+                                                            }).format(item.subtotal)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
-                                        <div className="info-row">
-                                            <span className="info-label">Trạng thái order:</span>
-                                            <span className="order-status">{selectedOrder.status}</span>
+                                        <div className="order-total-row">
+                                            <span className="total-label">Tổng cộng:</span>
+                                            <span className="total-amount">
+                                                {new Intl.NumberFormat('vi-VN', {
+                                                    style: 'currency',
+                                                    currency: 'VND'
+                                                }).format(selectedOrder.totalAmount || 0)}
+                                            </span>
                                         </div>
-                                    </>
+                                    </div>
                                 )}
                             </div>
 
                             <div className="modal-actions">
                                 {selectedTable.status === 'EMPTY' && (
-                                    <button
-                                        className="btn-primary"
-                                        onClick={handleStartService}
-                                    >
-                                        🍽️ Bắt đầu phục vụ
-                                    </button>
+                                    <>
+                                        <button
+                                            className="btn-primary"
+                                            onClick={handleStartService}
+                                            disabled={!isInWorkingHours}
+                                        >
+                                            🍽️ Bắt đầu phục vụ
+                                        </button>
+                                        {!isInWorkingHours && (
+                                            <p className="warning-message">{workingHoursMessage}</p>
+                                        )}
+                                    </>
                                 )}
 
                                 {selectedTable.status === 'SERVING' && (
-                                    <button
-                                        className="btn-primary"
-                                        onClick={handleManageOrder}
-                                    >
-                                        📝 Quản lý order
-                                    </button>
+                                    <>
+                                        <button
+                                            className="btn-primary"
+                                            onClick={handleManageOrder}
+                                            disabled={!isInWorkingHours}
+                                        >
+                                            📝 Quản lý order
+                                        </button>
+                                        {!isInWorkingHours && (
+                                            <p className="warning-message">{workingHoursMessage}</p>
+                                        )}
+                                    </>
                                 )}
 
-                                {(selectedTable.status === 'WAITING_PAYMENT' || selectedTable.status === 'PAID') && (
+
+                                {selectedTable.status === 'WAITING_PAYMENT' && (
                                     <div className="info-message">
                                         <p>Bàn này đang chờ thu ngân xử lý thanh toán.</p>
                                     </div>
                                 )}
+
+                                {selectedTable.status === 'PAID' && (
+                                    <>
+                                        <button
+                                            className="btn-primary"
+                                            onClick={handleCleanTable}
+                                            disabled={!isInWorkingHours}
+                                        >
+                                            🧹 Xác nhận dọn dẹp
+                                        </button>
+                                        {!isInWorkingHours && (
+                                            <p className="warning-message">{workingHoursMessage}</p>
+                                        )}
+                                    </>
+                                )}
+
 
                                 <button className="btn-cancel" onClick={closeModal}>
                                     Đóng

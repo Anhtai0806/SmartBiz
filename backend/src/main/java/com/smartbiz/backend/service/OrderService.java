@@ -73,78 +73,23 @@ public class OrderService {
                 // Find or validate shift
                 StaffShift shift = staffShiftRepository.findById(request.getShiftId()).orElse(null);
 
-                // If shift not found or doesn't belong to current user, try to find active
-                // shift for today
+                // If shift not found or doesn't belong to current user, try to find today's
+                // shift
                 if (shift == null || !shift.getUser().getId().equals(staffId)) {
                         List<StaffShift> userShifts = staffShiftRepository.findByUserIdAndShiftDate(
                                         staffId,
                                         java.time.LocalDate.now());
 
                         if (userShifts.isEmpty()) {
-                                // For testing purposes, if no shift found, throw clear error
                                 throw new IllegalArgumentException(
-                                                "Không tìm thấy ca làm việc (Shift) cho user này hôm nay. Vui lòng tạo ca làm việc trước.");
+                                                "Không tìm thấy ca làm việc cho user này hôm nay. Vui lòng tạo ca làm việc trước.");
                         }
 
-                        // Find the shift that matches current time
-                        java.time.LocalTime now = java.time.LocalTime.now();
-                        StaffShift activeShift = null;
-
-                        for (StaffShift s : userShifts) {
-                                java.time.LocalTime start = s.getStartTime();
-                                java.time.LocalTime end = s.getEndTime();
-
-                                boolean isWithinShift;
-                                if (start.isBefore(end)) {
-                                        // Normal shift (e.g., 08:00 to 12:00)
-                                        isWithinShift = !now.isBefore(start) && !now.isAfter(end);
-                                } else {
-                                        // Overnight shift (e.g., 22:00 to 06:00)
-                                        isWithinShift = !now.isBefore(start) || !now.isAfter(end);
-                                }
-
-                                if (isWithinShift) {
-                                        activeShift = s;
-                                        break;
-                                }
-                        }
-
-                        if (activeShift == null) {
-                                // Build error message with all available shifts
-                                StringBuilder shiftTimes = new StringBuilder();
-                                for (int i = 0; i < userShifts.size(); i++) {
-                                        StaffShift s = userShifts.get(i);
-                                        if (i > 0)
-                                                shiftTimes.append(", ");
-                                        shiftTimes.append(s.getStartTime()).append(" - ").append(s.getEndTime());
-                                }
-                                throw new IllegalArgumentException(
-                                                "Hiện tại không nằm trong khung giờ làm việc của bạn. Các ca làm việc hôm nay: "
-                                                                + shiftTimes.toString());
-                        }
-
-                        shift = activeShift;
-                } else {
-                        // Validate if current time is within the provided shift hours
-                        java.time.LocalTime now = java.time.LocalTime.now();
-                        java.time.LocalTime start = shift.getStartTime();
-                        java.time.LocalTime end = shift.getEndTime();
-
-                        boolean isWithinShift;
-                        if (start.isBefore(end)) {
-                                // Normal shift (e.g., 08:00 to 16:00)
-                                isWithinShift = !now.isBefore(start) && !now.isAfter(end);
-                        } else {
-                                // Overnight shift (e.g., 22:00 to 06:00)
-                                isWithinShift = !now.isBefore(start) || !now.isAfter(end);
-                        }
-
-                        if (!isWithinShift) {
-                                throw new IllegalArgumentException(
-                                                "Hiện tại không nằm trong khung giờ làm việc của bạn (" + start + " - "
-                                                                + end
-                                                                + ").");
-                        }
+                        // Use the first shift found for today
+                        // Note: Working hours validation is already done in
+                        // TableService.updateTableStatus()
+                        // when the table status was changed to SERVING
+                        shift = userShifts.get(0);
                 }
 
                 // Create order
@@ -307,5 +252,51 @@ public class OrderService {
                                 .price(item.getPrice())
                                 .subtotal(subtotal)
                                 .build();
+        }
+
+        /**
+         * Get all pending orders for kitchen (NEW and PROCESSING status)
+         * Sorted by creation time (oldest first)
+         */
+        public List<OrderResponse> getPendingOrdersForKitchen() {
+                List<Order> orders = orderRepository.findByStatusInOrderByCreatedAtAsc(
+                                List.of(OrderStatus.NEW, OrderStatus.PROCESSING));
+                return orders.stream()
+                                .map(this::convertToResponse)
+                                .collect(Collectors.toList());
+        }
+
+        /**
+         * Mark an order as completed (DONE status)
+         */
+        @Transactional
+        public OrderResponse markOrderAsCompleted(Long orderId) {
+                Order order = orderRepository.findById(orderId)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Order not found with id: " + orderId));
+
+                // Update status to DONE
+                order.setStatus(OrderStatus.DONE);
+                orderRepository.save(order);
+
+                return convertToResponse(order);
+        }
+
+        /**
+         * Get count of pending orders for kitchen
+         */
+        public long getPendingOrdersCount() {
+                return orderRepository.countByStatusIn(
+                                List.of(OrderStatus.NEW, OrderStatus.PROCESSING));
+        }
+
+        /**
+         * Get count of completed orders today
+         */
+        public long getCompletedOrdersTodayCount() {
+                java.time.LocalDateTime startOfDay = java.time.LocalDateTime.now()
+                                .withHour(0).withMinute(0).withSecond(0).withNano(0);
+                return orderRepository.countByStatusAndCreatedAtAfter(
+                                OrderStatus.DONE, startOfDay);
         }
 }

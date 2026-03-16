@@ -58,9 +58,9 @@ public class ShiftService {
             throw new UnauthorizedException("You don't have permission to create shifts for this store");
         }
 
-        // Verify user is staff/cashier
-        if (user.getRole() != Role.STAFF && user.getRole() != Role.CASHIER) {
-            throw new IllegalArgumentException("Only STAFF or CASHIER can be assigned to shifts");
+        // Verify user is staff/cashier/kitchen
+        if (user.getRole() != Role.STAFF && user.getRole() != Role.CASHIER && user.getRole() != Role.KITCHEN) {
+            throw new IllegalArgumentException("Only STAFF, CASHIER, or KITCHEN can be assigned to shifts");
         }
 
         // Verify staff is assigned to this store
@@ -128,7 +128,7 @@ public class ShiftService {
             if (store.getOwner().getId().equals(requesterId)) {
                 isAllowed = true;
             }
-        } else if (requester.getRole() == Role.STAFF || requester.getRole() == Role.CASHIER) {
+        } else if (requester.getRole() == Role.STAFF || requester.getRole() == Role.CASHIER || requester.getRole() == Role.KITCHEN) {
             // Verify assigned to store
             boolean isAssigned = store.getStaffMembers().stream()
                     .anyMatch(staff -> staff.getId().equals(requesterId));

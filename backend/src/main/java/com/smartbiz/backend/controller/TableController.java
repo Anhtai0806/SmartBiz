@@ -12,7 +12,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Table Management endpoints
@@ -63,7 +65,9 @@ public class TableController {
     public ResponseEntity<TableResponse> updateTableStatus(
             @PathVariable Long id,
             @Valid @RequestBody TableStatusRequest request) {
-        TableResponse table = tableService.updateTableStatus(id, request);
+        User currentUser = getCurrentUser();
+        String role = currentUser.getAuthorities().iterator().next().getAuthority();
+        TableResponse table = tableService.updateTableStatus(id, request, currentUser.getId(), role);
         return ResponseEntity.ok(table);
     }
 
@@ -76,6 +80,19 @@ public class TableController {
         User currentUser = getCurrentUser();
         tableService.deleteTable(currentUser.getId(), id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Check if user is currently in working hours (STAFF, CASHIER only)
+     */
+    @GetMapping("/working-hours/check")
+    @PreAuthorize("hasAnyRole('STAFF', 'CASHIER')")
+    public ResponseEntity<Map<String, Boolean>> checkWorkingHours() {
+        User currentUser = getCurrentUser();
+        boolean isInWorkingHours = tableService.isInWorkingHours(currentUser.getId());
+        Map<String, Boolean> response = new HashMap<>();
+        response.put("isInWorkingHours", isInWorkingHours);
+        return ResponseEntity.ok(response);
     }
 
     private User getCurrentUser() {

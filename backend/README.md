@@ -1,438 +1,191 @@
-# SmartBiz Backend - Authentication API Documentation
+# 🚀 SmartBiz Backend - Complete Guide
 
-## 🔐 Authentication System
+## 🎯 Overview
 
-SmartBiz sử dụng JWT (JSON Web Token) để authentication và role-based access control (RBAC) để authorization.
+A modern **Java Spring Boot 3.5.x** REST API serving as the administrative and operational core of the **SmartBiz** ecosystem. The project provides robust authentication, role-based access control, restaurant/store management, shift scheduling, order processing, and comprehensive sales reporting.
 
----
-
-## 📋 Table of Contents
-
-- [Authentication Flow](#authentication-flow)
-- [Roles & Permissions](#roles--permissions)
-- [API Endpoints](#api-endpoints)
-- [Error Handling](#error-handling)
-- [Testing](#testing)
-
----
-
-## 🔄 Authentication Flow
-
-1. **Login**: Client gửi email và password đến `/auth/login`
-2. **Receive Token**: Server trả về JWT token chứa userId, role, và email
-3. **Use Token**: Client gửi token trong header `Authorization: Bearer <token>` cho các requests tiếp theo
-4. **Logout**: Client gọi `/auth/logout` và xóa token khỏi storage
+### Key Features
+- **Monolithic Architecture**: Robust and easy to maintain approach structured by feature modules.
+- **Spring Data JPA**: Efficient database operations using Hibernate as the JPA provider.
+- **Role-Based Access Control (RBAC)**: Secure access mapped to `ADMIN`, `BUSINESS_OWNER`, `STAFF`, `CASHIER`, and `KITCHEN` roles.
+- **Stateless Authentication**: JWT-based secure user sessions and API access.
+- **Database Agnostic Base**: Configured with MySQL dialect, utilizing `spring.jpa.hibernate.ddl-auto=update` for smooth schema iterations.
+- **Comprehensive Error Handling**: Global exception handler with structured error responses mapping.
+- **Mail Integration**: Built-in Gmail SMTP support for sending emails (e.g., OTP notifications).
 
 ---
 
-## 👥 Roles & Permissions
-
-### Role Hierarchy
-
-| Role | Level | Description |
-|------|-------|-------------|
-| **ADMIN** | 4 | Quản trị viên hệ thống - Full access |
-| **BUSINESS_OWNER** | 3 | Chủ cửa hàng - Quản lý cửa hàng và nhân viên |
-| **STAFF** | 2 | Nhân viên - Xem ca làm việc và thực hiện công việc |
-| **CASHIER** | 1 | Thu ngân - Xử lý đơn hàng và thanh toán |
-
-### Access Control Matrix
-
-| Endpoint Pattern | ADMIN | BUSINESS_OWNER | STAFF | CASHIER |
-|-----------------|-------|----------------|-------|---------|
-| `/auth/login` | ✅ | ✅ | ✅ | ✅ |
-| `/auth/logout` | ✅ | ✅ | ✅ | ✅ |
-| `/auth/me` | ✅ | ✅ | ✅ | ✅ |
-| `/admin/**` | ✅ | ❌ | ❌ | ❌ |
-| `/business/**` | ✅ | ✅ | ❌ | ❌ |
-| `/staff/**` | ✅ | ✅ | ✅ | ✅ |
-
----
-
-## 📡 API Endpoints
-
-### Authentication Endpoints
-
-#### 1. Login
-
-**POST** `/auth/login`
-
-Đăng nhập và nhận JWT token.
-
-**Request Body**:
-```json
-{
-  "email": "admin@smartbiz.com",
-  "password": "password123"
-}
-```
-
-**Response** (200 OK):
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "type": "Bearer",
-  "id": 1,
-  "email": "admin@smartbiz.com",
-  "fullName": "Admin User",
-  "role": "ADMIN",
-  "status": "ACTIVE"
-}
-```
-
-**Error Responses**:
-- `401 Unauthorized`: Invalid email or password
-- `400 Bad Request`: Validation errors
-
----
-
-#### 2. Logout
-
-**POST** `/auth/logout`
-
-Đăng xuất (stateless - client phải xóa token).
-
-**Headers**:
-```
-Authorization: Bearer <your_jwt_token>
-```
-
-**Response** (200 OK):
-```json
-{
-  "message": "Logout successful. Please remove the token from client storage.",
-  "timestamp": "2026-01-16T09:15:00"
-}
-```
-
----
-
-#### 3. Get Current User
-
-**GET** `/auth/me`
-
-Lấy thông tin user hiện tại.
-
-**Headers**:
-```
-Authorization: Bearer <your_jwt_token>
-```
-
-**Response** (200 OK):
-```json
-{
-  "id": 1,
-  "email": "admin@smartbiz.com",
-  "fullName": "Admin User",
-  "role": "ADMIN",
-  "status": "ACTIVE",
-  "createdAt": "2026-01-15T10:30:00"
-}
-```
-
----
-
-### Admin Endpoints (ADMIN only)
-
-#### 1. Get All Users
-
-**GET** `/admin/users`
-
-Lấy danh sách tất cả users trong hệ thống.
-
-**Headers**:
-```
-Authorization: Bearer <admin_jwt_token>
-```
-
-**Response** (200 OK):
-```json
-[
-  {
-    "id": 1,
-    "email": "admin@smartbiz.com",
-    "fullName": "Admin User",
-    "role": "ADMIN",
-    "status": "ACTIVE",
-    "createdAt": "2026-01-15T10:30:00"
-  },
-  {
-    "id": 2,
-    "email": "owner@smartbiz.com",
-    "fullName": "Business Owner",
-    "role": "BUSINESS_OWNER",
-    "status": "ACTIVE",
-    "createdAt": "2026-01-15T11:00:00"
-  }
-]
-```
-
-**Error Responses**:
-- `401 Unauthorized`: Invalid or missing token
-- `403 Forbidden`: User is not ADMIN
-
----
-
-#### 2. Admin Dashboard
-
-**GET** `/admin/dashboard`
-
-Admin dashboard endpoint.
-
-**Headers**:
-```
-Authorization: Bearer <admin_jwt_token>
-```
-
-**Response** (200 OK):
-```
-Welcome to Admin Dashboard
-```
-
----
-
-### Business Endpoints (ADMIN, BUSINESS_OWNER)
-
-#### 1. Get My Stores
-
-**GET** `/business/stores`
-
-Lấy danh sách stores (ADMIN xem tất cả, BUSINESS_OWNER xem stores của mình).
-
-**Headers**:
-```
-Authorization: Bearer <jwt_token>
-```
-
-**Response** (200 OK):
-```json
-{
-  "userId": 2,
-  "role": "BUSINESS_OWNER",
-  "storeCount": 2,
-  "stores": [
-    {
-      "id": 1,
-      "name": "SmartBiz Store 1",
-      "address": "123 Main St",
-      "phone": "0123456789"
-    }
-  ]
-}
-```
-
-**Error Responses**:
-- `401 Unauthorized`: Invalid or missing token
-- `403 Forbidden`: User is STAFF or CASHIER
-
----
-
-#### 2. Business Dashboard
-
-**GET** `/business/dashboard`
-
-Business dashboard endpoint.
-
-**Headers**:
-```
-Authorization: Bearer <jwt_token>
-```
-
-**Response** (200 OK):
-```
-Welcome to Business Dashboard
-```
-
----
-
-### Staff Endpoints (All authenticated users)
-
-#### 1. Get My Shifts
-
-**GET** `/staff/shifts`
-
-Lấy danh sách ca làm việc của user hiện tại.
-
-**Headers**:
-```
-Authorization: Bearer <jwt_token>
-```
-
-**Response** (200 OK):
-```json
-{
-  "userId": 3,
-  "role": "STAFF",
-  "shiftCount": 5,
-  "shifts": [
-    {
-      "id": 1,
-      "startTime": "2026-01-16T08:00:00",
-      "endTime": "2026-01-16T16:00:00",
-      "status": "SCHEDULED"
-    }
-  ]
-}
-```
-
----
-
-#### 2. Staff Dashboard
-
-**GET** `/staff/dashboard`
-
-Staff dashboard endpoint.
-
-**Headers**:
-```
-Authorization: Bearer <jwt_token>
-```
-
-**Response** (200 OK):
-```
-Welcome to Staff Dashboard, STAFF
-```
-
----
-
-## ⚠️ Error Handling
-
-### Error Response Format
-
-```json
-{
-  "timestamp": "2026-01-16T09:15:00",
-  "status": 401,
-  "error": "Unauthorized",
-  "message": "Invalid JWT token",
-  "path": "/admin/users"
-}
-```
-
-### Common Error Codes
-
-| Status Code | Error | Description |
-|-------------|-------|-------------|
-| 400 | Bad Request | Validation errors, invalid request format |
-| 401 | Unauthorized | Invalid credentials, expired token, missing token |
-| 403 | Forbidden | Insufficient permissions for the requested resource |
-| 404 | Not Found | Resource not found |
-| 500 | Internal Server Error | Server error |
-
-### Authentication Errors
-
-| Error Message | Cause | Solution |
-|--------------|-------|----------|
-| Invalid email or password | Wrong credentials | Check email and password |
-| JWT token has expired | Token expired (>24h) | Login again to get new token |
-| Invalid JWT token | Malformed or tampered token | Use valid token or login again |
-| You don't have permission to access this resource | Insufficient role | Contact admin for role upgrade |
-
----
-
-## 🧪 Testing
-
-### Using cURL
-
-#### 1. Login
-```bash
-curl -X POST http://localhost:8080/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@smartbiz.com",
-    "password": "password123"
-  }'
-```
-
-#### 2. Get Current User
-```bash
-curl -X GET http://localhost:8080/auth/me \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-#### 3. Access Admin Endpoint
-```bash
-curl -X GET http://localhost:8080/admin/users \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-#### 4. Logout
-```bash
-curl -X POST http://localhost:8080/auth/logout \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-### Using Postman
-
-1. **Import Collection**: Create a new collection "SmartBiz API"
-2. **Set Environment Variable**: 
-   - Variable: `jwt_token`
-   - Initial Value: (empty)
-3. **Login Request**:
-   - Save token from response to `jwt_token` variable
-   - Script: `pm.environment.set("jwt_token", pm.response.json().token);`
-4. **Other Requests**:
-   - Add header: `Authorization: Bearer {{jwt_token}}`
-
----
-
-## 🔒 Security Features
-
-- ✅ **BCrypt Password Encoding**: Passwords are hashed with BCrypt (strength 10)
-- ✅ **JWT Token**: Stateless authentication with 24-hour expiration
-- ✅ **Role-based Access Control**: Fine-grained permissions based on user roles
-- ✅ **CSRF Protection**: Disabled for REST API (stateless)
-- ✅ **Global Exception Handling**: Consistent error responses
-- ✅ **Method-level Security**: `@PreAuthorize` annotations on sensitive endpoints
-
----
-
-## 📝 JWT Token Structure
-
-### Token Claims
-
-```json
-{
-  "sub": "admin@smartbiz.com",
-  "userId": 1,
-  "role": "ADMIN",
-  "iat": 1737001200,
-  "exp": 1737087600
-}
-```
-
-### Token Expiration
-
-- **Default**: 24 hours (86400000 milliseconds)
-- **Configurable**: Set `jwt.expiration` in `application.properties`
+## 📋 Requirements
+
+### System Requirements
+- **Java 17+** - [Download](https://openjdk.java.net/download/)
+- **Maven 3.8+** - [Download](https://maven.apache.org/download.cgi)
+- **Git** - [Download](https://git-scm.com/)
+
+### Database Requirements
+- **MySQL 8.0+** - [Download](https://www.mysql.com/downloads/)
+
+### IDE (Optional)
+- **IntelliJ IDEA** - [Download](https://www.jetbrains.com/idea/)
+- **VS Code** - [Download](https://code.visualstudio.com/)
+- **Eclipse** - [Download](https://www.eclipse.org/)
 
 ---
 
 ## 🚀 Quick Start
 
-1. **Start Application**:
-   ```bash
-   mvn spring-boot:run
-   ```
+### 1. Clone Repository
+```bash
+git clone https://github.com/Anhtai0806/SmartBiz.git
+cd SmartBiz/backend
+```
 
-2. **Create Test Users** (via database):
-   ```sql
-   INSERT INTO users (email, password, full_name, role, status, created_at) VALUES
-   ('admin@smartbiz.com', '$2a$10$...', 'Admin User', 'ADMIN', 'ACTIVE', NOW()),
-   ('owner@smartbiz.com', '$2a$10$...', 'Business Owner', 'BUSINESS_OWNER', 'ACTIVE', NOW()),
-   ('staff@smartbiz.com', '$2a$10$...', 'Staff User', 'STAFF', 'ACTIVE', NOW()),
-   ('cashier@smartbiz.com', '$2a$10$...', 'Cashier User', 'CASHIER', 'ACTIVE', NOW());
-   ```
+### 2. Setup Database (MySQL)
+Run the following commands in your MySQL console:
+```sql
+-- Create database
+CREATE DATABASE smartbiz CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-3. **Test Login**:
-   ```bash
-   curl -X POST http://localhost:8080/auth/login \
-     -H "Content-Type: application/json" \
-     -d '{"email": "admin@smartbiz.com", "password": "password123"}'
-   ```
+-- Note: The application uses root user by default in application.properties. 
+-- Ensure your root password is set to '0806' or update application.properties accordingly.
+```
+
+### 3. Update Database Configuration
+Edit `src/main/resources/application.properties` if your credentials differ:
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3306/smartbiz?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true
+spring.datasource.username=root
+spring.datasource.password=YOUR_PASSWORD
+```
 
 ---
 
-## 📞 Support
+## 🏗️ Project Structure
 
-For questions or issues, please contact the development team.
+```
+backend/
+├── pom.xml                              # Maven configuration with Spring Boot 3.5.9
+├── README.md                            # This file
+│
+├── src/main/
+│   ├── java/com/smartbiz/backend/
+│   │   ├── config/                      # Global configurations (Security, CORS, Mail)
+│   │   ├── controller/                  # REST Controllers mapped by role/feature
+│   │   ├── dto/                         # Data Transfer Objects for API requests/responses
+│   │   ├── entity/                      # JPA Entities (User, Store, Order, Invoice, etc.)
+│   │   ├── exception/                   # Custom exceptions and GlobalExceptionHandler
+│   │   ├── repository/                  # Spring Data JPA Repositories
+│   │   ├── service/                     # Business logic layer
+│   │   ├── util/                        # Helper classes (e.g., JwtUtil)
+│   │   └── BackendApplication.java      # Spring Boot Entry Point
+│   │
+│   └── resources/
+│       └── application.properties       # Application configuration (Database, JWT, Mail)
+│
+└── target/                              # Build Output (after `mvn package`)
+```
+
+---
+
+## 🗄️ Database Schema Synopsis
+
+The database leverages 20 complex JPA entities seamlessly woven together. Key domains include:
+- **Identity & Access Management:** `users`, `otp_codes`, `audit_logs`
+- **Store Operations:** `stores`, `tables`, `staff_store` (junction table)
+- **Product & Menus:** `menu_categories`, `menu_items`
+- **Ordering & Fulfillment:** `orders`, `order_items`
+- **Shift Management:** `work_shifts`, `staff_shifts`
+- **Finance & Billing:** `invoices`, `payment_transactions`, `qr_payment_codes`
+
+*Note: The system leverages Spring Boot's `spring.jpa.hibernate.ddl-auto=update` to automatically create/update tables matching these entities.*
+
+---
+
+## 🔌 API Summary
+
+APIs are protected using JWT token-based authentication and segmented by user role controller maps:
+
+| Module | Core Endpoints | Required Roles | Description |
+|--------|----------------|----------------|-------------|
+| **Auth** | `/auth/login`, `/auth/me`, `/auth/register` | `PUBLIC`, `ALL` | Identity, login, profile updates. |
+| **Admin** | `/admin/users`, `/admin/stores` | `ADMIN` | Superuser management functions. |
+| **Business** | `/business/stores`, `/business/dashboard` | `BUSINESS_OWNER` | Owner-level stores/staff management. |
+| **Cashier**| `/api/cashier/invoices`, `/api/cashier/orders/today` | `CASHIER`, `BUSINESS_OWNER`| Payment and bill settlement processing. |
+| **Staff** | `/api/shifts/my`, `/api/tables` | `STAFF`, Multi-role | Waitstaff operation views and shift data. |
+| **Kitchen**| `/api/kitchen/orders/pending` | `KITCHEN`, `BUSINESS_OWNER`| Kitchen order tickets viewing and fulfill. |
+
+*See `api_documentation.md` artifact (if generated via AI) or Swagger/Postman for full request/response payloads.*
+
+### Example Authenticated Request
+```bash
+curl -X GET http://localhost:8080/auth/me \
+  -H "Authorization: Bearer <YOUR_JWT_TOKEN>" \
+  -H "Accept: application/json"
+```
+
+---
+
+## 🛠️ Build & Run Commands
+
+### Development Mode
+```bash
+# Clean and run standard Spring Boot app
+mvn clean spring-boot:run
+
+# Or compile and package skipping tests for a fast local build
+mvn clean package -DskipTests
+```
+
+### Production Mode (JAR)
+```bash
+# Build JAR first
+mvn clean package -DskipTests
+
+# Run JAR
+java -jar target/backend-0.0.1-SNAPSHOT.jar
+```
+
+---
+
+## 🔐 Security Configuration
+
+### JWT Details
+The system utilizes the `jjwt` library (`0.12.3`).
+- **Secret Key Configured**: `smartbiz-secret-key-for-jwt-token-generation-and-validation-2024`
+- **Session Duration**: 24 Hours (`86400000` ms)
+
+### Authentication Mechanism
+1. Client requests authentication on `/auth/login`.
+2. Controller uses `AuthenticationManager` to validate credentials against the database (`findByEmail` or `findByPhone`).
+3. Payload returns a standard `Bearer` token including encoded rules & `User` identifiers.
+4. Downstream endpoints use `@PreAuthorize("hasRole('...')")` and `SecurityContextHolder` validation via a custom Jwt filter.
+
+---
+
+## ✉️ Mail Configuration
+
+SmartBiz integrates Gmail SMTP to handle outgoing emails (e.g., verification OTPs).
+Current configuration hooks up to:
+- **Host**: `smtp.gmail.com`
+- **Port**: `587`
+- TLS protocol enabled.
+
+*Credentials located down in `application.properties`.*
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run all Unit Tests provided by Spring Security Test and Spring Boot Starter Test
+mvn test
+
+# Run specific testing phases and build output
+mvn verify
+```
+
+---
+
+## 👥 Contributors
+
+**Version**: 0.0.1-SNAPSHOT | **Last Updated**: March 2026

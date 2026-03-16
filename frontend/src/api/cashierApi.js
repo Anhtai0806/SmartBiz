@@ -35,6 +35,11 @@ export const updateTableStatus = async (tableId, status) => {
     return response.data;
 };
 
+export const checkCashierWorkingHours = async () => {
+    const response = await api.get('/tables/working-hours/check');
+    return response.data;
+};
+
 // Order APIs
 export const getOrdersByShift = async (shiftId) => {
     const response = await api.get(`/orders/shift/${shiftId}`);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Input from '../components/Input';
 import Button from '../components/Button';
@@ -13,6 +13,35 @@ const Login = () => {
     });
     const [errors, setErrors] = useState({});
     const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        // Auto-redirect if already logged in
+        const token = localStorage.getItem('token');
+        const role = localStorage.getItem('role');
+        
+        if (token && role) {
+            switch (role) {
+                case 'ADMIN':
+                    navigate('/admin/dashboard');
+                    break;
+                case 'BUSINESS_OWNER':
+                    navigate('/owner/dashboard');
+                    break;
+                case 'CASHIER':
+                    navigate('/cashier/dashboard');
+                    break;
+                case 'STAFF':
+                    navigate('/staff/dashboard');
+                    break;
+                case 'KITCHEN':
+                    navigate('/kitchen/dashboard');
+                    break;
+                default:
+                    // keep on login page if role is unrecognized
+                    break;
+            }
+        }
+    }, [navigate]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -72,6 +101,7 @@ const Login = () => {
             if (response.storeId) {
                 localStorage.setItem('storeId', response.storeId);
             }
+            localStorage.setItem('rememberMe', formData.rememberMe.toString());
 
             // Role-based redirection
             switch (response.role) {
@@ -86,6 +116,9 @@ const Login = () => {
                     break;
                 case 'STAFF':
                     navigate('/staff/dashboard');
+                    break;
+                case 'KITCHEN':
+                    navigate('/kitchen/dashboard');
                     break;
                 default:
                     navigate('/');

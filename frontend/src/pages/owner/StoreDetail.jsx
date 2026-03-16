@@ -115,52 +115,81 @@ const StoreDetail = () => {
                 </button>
             </div>
 
-            <div className="tabs-container">
-                <div className="tabs-header">
-                    <button
-                        className={`tab-btn ${activeTab === 'staff' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('staff')}
+            {store.status === 'INACTIVE' ? (
+                <div className="inactive-store-notice" style={{ textAlign: 'center', margin: '40px 0', padding: '30px', backgroundColor: '#fff3f3', borderRadius: '8px', border: '1px solid #ffcdd2' }}>
+                    <h2 style={{ color: '#d32f2f', marginBottom: '15px' }}>Cửa hàng đang tạm ngưng</h2>
+                    <p style={{ color: '#666', marginBottom: '20px' }}>Bạn cần kích hoạt lại cửa hàng để có thể quản lý nhân viên, bàn và kho hàng.</p>
+                    <Button 
+                        onClick={async () => {
+                            if (window.confirm("Bạn có chắc chắn muốn kích hoạt lại cửa hàng này?")) {
+                                try {
+                                    await updateStore(storeId, {
+                                        name: store.name,
+                                        address: store.address || '',
+                                        phone: store.phone || '',
+                                        taxRate: store.taxRate || '',
+                                        openingTime: store.openingTime || '',
+                                        closingTime: store.closingTime || '',
+                                        status: 'ACTIVE'
+                                    });
+                                    await fetchStoreDetails();
+                                } catch (err) {
+                                    alert('Không thể kích hoạt cửa hàng: ' + (err.response?.data?.message || err.message));
+                                }
+                            }
+                        }}
                     >
-                        👥 Nhân viên ({store.staffMembers?.length || 0})
-                    </button>
-                    <button
-                        className={`tab-btn ${activeTab === 'tables' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('tables')}
-                    >
-                        🪑 Bàn ({store.tables?.length || 0})
-                    </button>
-                    <button
-                        className={`tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('inventory')}
-                    >
-                        📦 Kho hàng ({store.menuItems?.length || 0})
-                    </button>
+                        Khôi phục hoạt động
+                    </Button>
                 </div>
+            ) : (
+                <div className="tabs-container">
+                    <div className="tabs-header">
+                        <button
+                            className={`tab-btn ${activeTab === 'staff' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('staff')}
+                        >
+                            👥 Nhân viên ({store.staffMembers?.length || 0})
+                        </button>
+                        <button
+                            className={`tab-btn ${activeTab === 'tables' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('tables')}
+                        >
+                            🪑 Bàn ({store.tables?.length || 0})
+                        </button>
+                        <button
+                            className={`tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('inventory')}
+                        >
+                            📦 Kho hàng ({store.menuItems?.length || 0})
+                        </button>
+                    </div>
 
-                <div className="tab-content">
-                    {activeTab === 'staff' && (
-                        <StaffTab
-                            storeId={store.id}
-                            staffMembers={store.staffMembers}
-                            onUpdate={fetchStoreDetails}
-                        />
-                    )}
-                    {activeTab === 'tables' && (
-                        <TablesTab
-                            storeId={store.id}
-                            tables={store.tables}
-                            onUpdate={fetchStoreDetails}
-                        />
-                    )}
-                    {activeTab === 'inventory' && (
-                        <InventoryTab
-                            storeId={store.id}
-                            menuItems={store.menuItems}
-                            onUpdate={fetchStoreDetails}
-                        />
-                    )}
+                    <div className="tab-content">
+                        {activeTab === 'staff' && (
+                            <StaffTab
+                                storeId={store.id}
+                                staffMembers={store.staffMembers}
+                                onUpdate={fetchStoreDetails}
+                            />
+                        )}
+                        {activeTab === 'tables' && (
+                            <TablesTab
+                                storeId={store.id}
+                                tables={store.tables}
+                                onUpdate={fetchStoreDetails}
+                            />
+                        )}
+                        {activeTab === 'inventory' && (
+                            <InventoryTab
+                                storeId={store.id}
+                                menuItems={store.menuItems}
+                                onUpdate={fetchStoreDetails}
+                            />
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Sửa thông tin cửa hàng">
                 <form onSubmit={handleUpdateStore} className="edit-store-form">

@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -20,6 +22,7 @@ public class TableService {
     private final TablesRepository tablesRepository;
     private final StoreRepository storeRepository;
     private final OrderRepository orderRepository;
+    private final StaffShiftRepository staffShiftRepository;
 
     /**
      * Get all tables for a store
@@ -105,9 +108,14 @@ public class TableService {
      * Update table status (STAFF, CASHIER can update)
      */
     @Transactional
-    public TableResponse updateTableStatus(Long tableId, TableStatusRequest request) {
+    public TableResponse updateTableStatus(Long tableId, TableStatusRequest request, UUID userId, String role) {
         Tables table = tablesRepository.findById(tableId)
                 .orElseThrow(() -> new ResourceNotFoundException("Table not found with id: " + tableId));
+
+        // Validate working hours for STAFF and CASHIER
+        if ("ROLE_STAFF".equals(role) || "ROLE_CASHIER".equals(role)) {
+            validateWorkingHours(userId, table.getStore().getId());
+        }
 
         table.setStatus(request.getStatus());
         Tables updated = tablesRepository.save(table);
@@ -128,6 +136,94 @@ public class TableService {
         }
 
         tablesRepository.delete(table);
+    }
+
+    /**
+     * Validate if user is currently within their working hours
+     */
+    private void validateWorkingHours(UUID userId, Long storeId) {
+        // Find shifts for today
+        List<StaffShift> userShifts = staffShiftRepository.findByUserIdAndShiftDate(
+                userId,
+                LocalDate.now());
+
+        if (userShifts.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Bạn không có ca làm việc hôm nay. Chỉ có thể xem thông tin bàn.");
+        }
+
+        // Check if current time is within any shift
+        LocalTime now = LocalTime.now();
+        boolean isWithinShift = false;
+
+        for (StaffShift shift : userShifts) {
+            LocalTime start = shift.getStartTime();
+            LocalTime end = shift.getEndTime();
+
+            if (start.isBefore(end)) {
+                // Normal shift (e.g., 08:00 to 16:00)
+                if (!now.isBefore(start) && !now.isAfter(end)) {
+                    isWithinShift = true;
+                    break;
+                }
+            } else {
+                // Overnight shift (e.g., 22:00 to 06:00)
+                if (!now.isBefore(start) || !now.isAfter(end)) {
+                    isWithinShift = true;
+                    break;
+                }
+            }
+        }
+
+        if (!isWithinShift) {
+            StringBuilder shiftTimes = new StringBuilder();
+            for (int i = 0; i < userShifts.size(); i++) {
+                if (i > 0)
+                    shiftTimes.append(", ");
+                shiftTimes.append(userShifts.get(i).getStartTime())
+                        .append(" - ")
+                        .append(userShifts.get(i).getEndTime());
+            }
+            throw new IllegalArgumentException(
+                    "Hiện tại không nằm trong khung giờ làm việc của bạn. Các ca làm việc hôm nay: "
+                            + shiftTimes.toString());
+        }
+    }
+
+    /**
+     * Check if user is currently in working hours
+     */
+    public boolean isInWorkingHours(UUID userId) {
+        try {
+            List<StaffShift> userShifts = staffShiftRepository.findByUserIdAndShiftDate(
+                    userId,
+                    LocalDate.now());
+
+            if (userShifts.isEmpty()) {
+                return false;
+            }
+
+            LocalTime now = LocalTime.now();
+            for (StaffShift shift : userShifts) {
+                LocalTime start = shift.getStartTime();
+                LocalTime end = shift.getEndTime();
+
+                if (start.isBefore(end)) {
+                    // Normal shift
+                    if (!now.isBefore(start) && !now.isAfter(end)) {
+                        return true;
+                    }
+                } else {
+                    // Overnight shift
+                    if (!now.isBefore(start) || !now.isAfter(end)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /**

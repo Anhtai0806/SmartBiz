@@ -57,17 +57,32 @@ const OrderManagement = ({ table, existingOrder, onClose, onOrderCreated }) => {
 
     const handleAddItem = async (menuItem) => {
         if (currentOrder) {
-            // Add to existing order via API
-            try {
-                const response = await addItemToOrder(currentOrder.id, {
-                    menuItemId: menuItem.id,
-                    quantity: 1
-                });
-                setOrderItems(response.items);
-                setCurrentOrder(response);
-            } catch (error) {
-                console.error('Error adding item:', error);
-                alert('Không thể thêm món. Vui lòng thử lại.');
+            // Check if item already exists in current order
+            const existingItem = orderItems.find(item => item.menuItemId === menuItem.id);
+
+            if (existingItem) {
+                // Item exists, update quantity
+                try {
+                    const response = await updateOrderItem(currentOrder.id, existingItem.id, existingItem.quantity + 1);
+                    setOrderItems(response.items);
+                    setCurrentOrder(response);
+                } catch (error) {
+                    console.error('Error updating item quantity:', error);
+                    alert('Không thể cập nhật số lượng. Vui lòng thử lại.');
+                }
+            } else {
+                // Item doesn't exist, add new item
+                try {
+                    const response = await addItemToOrder(currentOrder.id, {
+                        menuItemId: menuItem.id,
+                        quantity: 1
+                    });
+                    setOrderItems(response.items);
+                    setCurrentOrder(response);
+                } catch (error) {
+                    console.error('Error adding item:', error);
+                    alert('Không thể thêm món. Vui lòng thử lại.');
+                }
             }
         } else {
             // Add to local state for new order

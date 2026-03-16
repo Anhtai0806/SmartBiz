@@ -38,7 +38,7 @@ public class ShiftController {
      * Get my shifts (current user)
      */
     @GetMapping("/my")
-    @PreAuthorize("hasAnyRole('STAFF', 'CASHIER', 'BUSINESS_OWNER')")
+    @PreAuthorize("hasAnyRole('STAFF', 'CASHIER', 'BUSINESS_OWNER', 'KITCHEN')")
     public ResponseEntity<List<ShiftResponse>> getMyShifts() {
         User currentUser = getCurrentUser();
         List<ShiftResponse> shifts = shiftService.getMyShifts(currentUser.getId());
@@ -87,7 +87,7 @@ public class ShiftController {
      * Get shifts by date range for calendar view (BUSINESS_OWNER)
      */
     @GetMapping("/store/{storeId}/calendar")
-    @PreAuthorize("hasAnyRole('BUSINESS_OWNER', 'CASHIER', 'STAFF')")
+    @PreAuthorize("hasAnyRole('BUSINESS_OWNER', 'CASHIER', 'STAFF', 'KITCHEN')")
     public ResponseEntity<List<ShiftResponse>> getShiftsByDateRange(
             @PathVariable Long storeId,
             @RequestParam String startDate,

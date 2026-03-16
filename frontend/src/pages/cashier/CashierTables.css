@@ -28,6 +28,34 @@
     color: #6b7280;
 }
 
+/* Working Hours Warning Banner */
+.working-hours-banner {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    color: #856404;
+    padding: 12px 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 500;
+}
+
+.warning-message {
+    color: #dc3545;
+    font-size: 0.9em;
+    margin-top: 10px;
+    text-align: center;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+}
+
+button:disabled:hover {
+    transform: none !important;
+}
+
 /* Filter Section */
 .filter-section {
     background: white;

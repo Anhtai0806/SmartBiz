@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getStaffDashboardStats, getMyTodayShift } from '../../api/staffApi';
+import { getMyTodayShift } from '../../api/staffApi';
 import './StaffDashboardHome.css';
 
 const StaffDashboardHome = () => {
     const navigate = useNavigate();
-    const [stats, setStats] = useState(null);
     const [todayShift, setTodayShift] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -19,20 +18,14 @@ const StaffDashboardHome = () => {
             setLoading(true);
             setError(null);
 
-            const storeId = localStorage.getItem('storeId') || '1';
-
-            // Fetch dashboard stats and today's shift
-            const [statsData, shiftData] = await Promise.all([
-                getStaffDashboardStats(storeId),
-                getMyTodayShift()
-            ]);
-
-            setStats(statsData);
+            // Fetch today's shift
+            const shiftData = await getMyTodayShift();
             setTodayShift(shiftData);
             setLoading(false);
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
-            setError('Không thể tải dữ liệu dashboard. Vui lòng thử lại.');
+            // If no shift today, it's not an error
+            setTodayShift(null);
             setLoading(false);
         }
     };
@@ -91,33 +84,6 @@ const StaffDashboardHome = () => {
                 </div>
             )}
 
-            {/* Quick Stats */}
-            <div className="stats-grid">
-                <div className="stat-card stat-tables">
-                    <div className="stat-icon">🪑</div>
-                    <div className="stat-content">
-                        <div className="stat-value">{stats?.tablesServing || 0}</div>
-                        <div className="stat-label">Bàn đang phục vụ</div>
-                    </div>
-                </div>
-
-                <div className="stat-card stat-orders">
-                    <div className="stat-icon">📋</div>
-                    <div className="stat-content">
-                        <div className="stat-value">{stats?.ordersToday || 0}</div>
-                        <div className="stat-label">Đơn hàng hôm nay</div>
-                    </div>
-                </div>
-
-                <div className="stat-card stat-active">
-                    <div className="stat-icon">✅</div>
-                    <div className="stat-content">
-                        <div className="stat-value">{stats?.activeOrders || 0}</div>
-                        <div className="stat-label">Đơn đang xử lý</div>
-                    </div>
-                </div>
-            </div>
-
             {/* Quick Actions */}
             <div className="quick-actions">
                 <h3>Thao tác nhanh</h3>
@@ -128,15 +94,6 @@ const StaffDashboardHome = () => {
                     >
                         <span className="action-icon">🪑</span>
                         <span className="action-label">Xem bàn</span>
-                        <span className="action-arrow">→</span>
-                    </button>
-
-                    <button
-                        className="action-card action-orders"
-                        onClick={() => navigate('/staff/orders')}
-                    >
-                        <span className="action-icon">📋</span>
-                        <span className="action-label">Đơn hàng của tôi</span>
                         <span className="action-arrow">→</span>
                     </button>
 

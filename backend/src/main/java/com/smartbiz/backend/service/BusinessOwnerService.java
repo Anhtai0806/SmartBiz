@@ -132,7 +132,7 @@ public class BusinessOwnerService {
             throw new EmailOrPhoneAlreadyExistsException("Email already exists: " + request.getEmail());
         }
 
-        // Validate role - only STAFF or CASHIER allowed
+        // Validate role - only STAFF, CASHIER, or KITCHEN allowed
         Role role;
         try {
             role = Role.valueOf(request.getRole().toUpperCase());
@@ -140,8 +140,9 @@ public class BusinessOwnerService {
             throw new InvalidRoleException("Invalid role: " + request.getRole());
         }
 
-        if (role != Role.STAFF && role != Role.CASHIER) {
-            throw new InvalidRoleException("Only STAFF or CASHIER roles can be created. Cannot create: " + role);
+        if (role != Role.STAFF && role != Role.CASHIER && role != Role.KITCHEN) {
+            throw new InvalidRoleException(
+                    "Only STAFF, CASHIER, or KITCHEN roles can be created. Cannot create: " + role);
         }
 
         // Create staff user
@@ -187,8 +188,8 @@ public class BusinessOwnerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Staff not found with ID: " + request.getUserId()));
 
         // Validate staff role
-        if (staff.getRole() != Role.STAFF && staff.getRole() != Role.CASHIER) {
-            throw new InvalidRoleException("Only STAFF or CASHIER can be assigned to stores");
+        if (staff.getRole() != Role.STAFF && staff.getRole() != Role.CASHIER && staff.getRole() != Role.KITCHEN) {
+            throw new InvalidRoleException("Only STAFF, CASHIER, or KITCHEN can be assigned to stores");
         }
 
         // Add staff to store if not already assigned
@@ -220,8 +221,8 @@ public class BusinessOwnerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Staff not found with ID: " + staffId));
 
         // Validate staff role
-        if (staff.getRole() != Role.STAFF && staff.getRole() != Role.CASHIER) {
-            throw new InvalidRoleException("Can only update status for STAFF or CASHIER");
+        if (staff.getRole() != Role.STAFF && staff.getRole() != Role.CASHIER && staff.getRole() != Role.KITCHEN) {
+            throw new InvalidRoleException("Can only update status for STAFF, CASHIER, or KITCHEN");
         }
 
         // Verify staff belongs to one of owner's stores
@@ -268,8 +269,8 @@ public class BusinessOwnerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Staff not found with ID: " + staffId));
 
         // Validate staff role
-        if (staff.getRole() != Role.STAFF && staff.getRole() != Role.CASHIER) {
-            throw new InvalidRoleException("Can only update STAFF or CASHIER");
+        if (staff.getRole() != Role.STAFF && staff.getRole() != Role.CASHIER && staff.getRole() != Role.KITCHEN) {
+            throw new InvalidRoleException("Can only update STAFF, CASHIER, or KITCHEN");
         }
 
         // Verify staff belongs to one of owner's stores

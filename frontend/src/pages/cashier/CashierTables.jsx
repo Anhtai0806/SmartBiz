@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getTablesByStore, getOrderByTable, updateTableStatus, updateOrderStatus } from '../../api/cashierApi';
+import { getTablesByStore, getOrderByTable, updateTableStatus, updateOrderStatus, checkCashierWorkingHours } from '../../api/cashierApi';
 import { useNavigate } from 'react-router-dom';
 import OrderManagement from './OrderManagement';
 import './CashierTables.css';
@@ -13,9 +13,18 @@ const CashierTables = () => {
     const [filterStatus, setFilterStatus] = useState('ALL');
     const [error, setError] = useState(null);
     const [showOrderManagement, setShowOrderManagement] = useState(false);
+    const [isInWorkingHours, setIsInWorkingHours] = useState(true);
+    const [workingHoursMessage, setWorkingHoursMessage] = useState('');
 
     useEffect(() => {
         fetchTables();
+        checkWorkingHours();
+        // Auto-refresh every 30 seconds
+        const interval = setInterval(() => {
+            fetchTables();
+            checkWorkingHours();
+        }, 30000);
+        return () => clearInterval(interval);
     }, []);
 
     const fetchTables = async () => {
@@ -31,6 +40,23 @@ const CashierTables = () => {
             console.error('Error fetching tables:', error);
             setError('Không thể tải danh sách bàn. Vui lòng thử lại.');
             setLoading(false);
+        }
+    };
+
+    const checkWorkingHours = async () => {
+        try {
+            const response = await checkCashierWorkingHours();
+            setIsInWorkingHours(response.isInWorkingHours);
+            if (!response.isInWorkingHours) {
+                setWorkingHoursMessage('Bạn chỉ có thể xem thông tin bàn ngoài giờ làm việc.');
+            } else {
+                setWorkingHoursMessage('');
+            }
+        } catch (error) {
+            console.error('Error checking working hours:', error);
+            // If error checking, assume not in working hours for safety
+            setIsInWorkingHours(false);
+            setWorkingHoursMessage('Không thể xác định ca làm việc. Vui lòng liên hệ quản lý.');
         }
     };
 
@@ -161,6 +187,13 @@ const CashierTables = () => {
                 </div>
             </div>
 
+            {/* Working Hours Warning Banner */}
+            {!isInWorkingHours && workingHoursMessage && (
+                <div className="working-hours-banner">
+                    ⚠️ {workingHoursMessage}
+                </div>
+            )}
+
             <div className="filter-section">
                 <div className="filter-buttons">
                     <button
@@ -251,12 +284,18 @@ const CashierTables = () => {
 
                             <div className="table-actions">
                                 {selectedTable.status === 'EMPTY' && (
-                                    <button
-                                        className="btn-primary"
-                                        onClick={handleStartService}
-                                    >
-                                        🍽️ Bắt đầu phục vụ
-                                    </button>
+                                    <>
+                                        <button
+                                            className="btn-primary"
+                                            onClick={handleStartService}
+                                            disabled={!isInWorkingHours}
+                                        >
+                                            🍽️ Bắt đầu phục vụ
+                                        </button>
+                                        {!isInWorkingHours && (
+                                            <p className="warning-message">{workingHoursMessage}</p>
+                                        )}
+                                    </>
                                 )}
 
                                 {selectedTable.status === 'SERVING' && (
@@ -264,35 +303,51 @@ const CashierTables = () => {
                                         <button
                                             className="btn-primary"
                                             onClick={handleManageOrder}
+                                            disabled={!isInWorkingHours}
                                         >
                                             📝 Quản lý order
                                         </button>
                                         <button
                                             className="btn-success"
                                             onClick={handlePaymentClick}
-                                            disabled={loading}
+                                            disabled={loading || !isInWorkingHours}
                                         >
                                             💳 Thanh toán
                                         </button>
+                                        {!isInWorkingHours && (
+                                            <p className="warning-message">{workingHoursMessage}</p>
+                                        )}
                                     </>
                                 )}
 
                                 {selectedTable.status === 'WAITING_PAYMENT' && (
-                                    <button
-                                        className="btn-success"
-                                        onClick={() => navigate('/cashier/payment')}
-                                    >
-                                        💳 Thanh toán
-                                    </button>
+                                    <>
+                                        <button
+                                            className="btn-success"
+                                            onClick={() => navigate('/cashier/payment')}
+                                            disabled={!isInWorkingHours}
+                                        >
+                                            💳 Thanh toán
+                                        </button>
+                                        {!isInWorkingHours && (
+                                            <p className="warning-message">{workingHoursMessage}</p>
+                                        )}
+                                    </>
                                 )}
 
                                 {selectedTable.status === 'PAID' && (
-                                    <button
-                                        className="btn-primary" // Reusing primary style or create a new clean style
-                                        onClick={handleCleanTable}
-                                    >
-                                        🧹 Xác nhận dọn dẹp
-                                    </button>
+                                    <>
+                                        <button
+                                            className="btn-primary"
+                                            onClick={handleCleanTable}
+                                            disabled={!isInWorkingHours}
+                                        >
+                                            🧹 Xác nhận dọn dẹp
+                                        </button>
+                                        {!isInWorkingHours && (
+                                            <p className="warning-message">{workingHoursMessage}</p>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>

@@ -106,7 +106,7 @@ const StaffTab = ({ storeId, staffMembers, onUpdate }) => {
                                     <td>{staff.email}</td>
                                     <td>
                                         <span className={`role-badge ${staff.role.toLowerCase()}`}>
-                                            {staff.role === 'STAFF' ? 'Nhân viên' : 'Thu ngân'}
+                                            {staff.role === 'STAFF' ? 'Nhân viên' : staff.role === 'CASHIER' ? 'Thu ngân' : 'Bếp'}
                                         </span>
                                     </td>
                                     <td>
@@ -191,6 +191,7 @@ const StaffTab = ({ storeId, staffMembers, onUpdate }) => {
                         >
                             <option value="STAFF">Nhân viên</option>
                             <option value="CASHIER">Thu ngân</option>
+                            <option value="KITCHEN">Bếp</option>
                         </select>
                     </div>
                     <div className="form-group">

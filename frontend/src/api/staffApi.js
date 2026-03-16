@@ -42,6 +42,13 @@ export const updateTableStatus = async (tableId, status) => {
     return response.data;
 };
 
+export const checkStaffWorkingHours = async () => {
+    const response = await axios.get(`${API_BASE_URL}/tables/working-hours/check`, {
+        headers: createAuthHeader()
+    });
+    return response.data;
+};
+
 // Orders
 export const getOrderByTable = async (tableId) => {
     const response = await axios.get(`${API_BASE_URL}/orders/table/${tableId}`, {
@@ -100,9 +107,28 @@ export const getMenuItemsByStore = async (storeId) => {
     return response.data;
 };
 
-// Shifts
+// Shifts - using ShiftController endpoints
 export const getMyShifts = async (startDate, endDate) => {
-    const response = await axios.get(`${API_BASE_URL}/staff/shifts/my-shifts`, {
+    const response = await axios.get(`${API_BASE_URL}/shifts/my`, {
+        params: { startDate, endDate },
+        headers: createAuthHeader()
+    });
+    return response.data; // ShiftController returns List<ShiftResponse> directly
+};
+
+// Get all staff in store (for viewing all schedules)
+export const getStoreStaff = async (storeId) => {
+    // Staff can use the same endpoint as cashier
+    const response = await axios.get(`${API_BASE_URL}/cashier/staff`, {
+        params: { storeId },
+        headers: createAuthHeader()
+    });
+    return response.data;
+};
+
+// Get all shifts by date range for a store - using ShiftController
+export const getShiftsByDateRange = async (storeId, startDate, endDate) => {
+    const response = await axios.get(`${API_BASE_URL}/shifts/store/${storeId}/calendar`, {
         params: { startDate, endDate },
         headers: createAuthHeader()
     });

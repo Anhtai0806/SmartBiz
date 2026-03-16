@@ -4,5 +4,6 @@ public enum Role {
     ADMIN,
     BUSINESS_OWNER,
     STAFF,
-    CASHIER
+    CASHIER,
+    KITCHEN
 }

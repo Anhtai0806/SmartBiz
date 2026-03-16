@@ -56,4 +56,11 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         List<Order> findByTableStoreIdAndStatus(
                         @Param("storeId") Long storeId,
                         @Param("status") OrderStatus status);
+
+        // Kitchen-specific queries
+        List<Order> findByStatusInOrderByCreatedAtAsc(List<OrderStatus> statuses);
+
+        long countByStatusIn(List<OrderStatus> statuses);
+
+        long countByStatusAndCreatedAtAfter(OrderStatus status, LocalDateTime createdAt);
 }

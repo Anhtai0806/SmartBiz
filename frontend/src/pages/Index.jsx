@@ -1,14 +1,41 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
 import './Index.css';
 
 const Index = () => {
     const [isVisible, setIsVisible] = useState(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
         setIsVisible(true);
-    }, []);
+
+        // Auto-redirect if already logged in
+        const token = localStorage.getItem('token');
+        const role = localStorage.getItem('role');
+        
+        if (token && role) {
+            switch (role) {
+                case 'ADMIN':
+                    navigate('/admin/dashboard');
+                    break;
+                case 'BUSINESS_OWNER':
+                    navigate('/owner/dashboard');
+                    break;
+                case 'CASHIER':
+                    navigate('/cashier/dashboard');
+                    break;
+                case 'STAFF':
+                    navigate('/staff/dashboard');
+                    break;
+                case 'KITCHEN':
+                    navigate('/kitchen/dashboard');
+                    break;
+                default:
+                    break;
+            }
+        }
+    }, [navigate]);
 
     const features = [
         {
