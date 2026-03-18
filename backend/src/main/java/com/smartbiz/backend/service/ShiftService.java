@@ -2,6 +2,7 @@ package com.smartbiz.backend.service;
 
 import com.smartbiz.backend.dto.*;
 import com.smartbiz.backend.entity.*;
+import com.smartbiz.backend.enums.Role;
 import com.smartbiz.backend.exception.ResourceNotFoundException;
 import com.smartbiz.backend.exception.UnauthorizedException;
 import com.smartbiz.backend.repository.*;
@@ -128,7 +129,8 @@ public class ShiftService {
             if (store.getOwner().getId().equals(requesterId)) {
                 isAllowed = true;
             }
-        } else if (requester.getRole() == Role.STAFF || requester.getRole() == Role.CASHIER || requester.getRole() == Role.KITCHEN) {
+        } else if (requester.getRole() == Role.STAFF || requester.getRole() == Role.CASHIER
+                || requester.getRole() == Role.KITCHEN) {
             // Verify assigned to store
             boolean isAssigned = store.getStaffMembers().stream()
                     .anyMatch(staff -> staff.getId().equals(requesterId));

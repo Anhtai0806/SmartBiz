@@ -6,8 +6,8 @@ import com.smartbiz.backend.dto.LoginResponse;
 import com.smartbiz.backend.dto.RegisterRequest;
 import com.smartbiz.backend.dto.UpdateProfileRequest;
 import com.smartbiz.backend.dto.UserResponse;
-import com.smartbiz.backend.entity.Status;
 import com.smartbiz.backend.entity.User;
+import com.smartbiz.backend.enums.Status;
 import com.smartbiz.backend.repository.UserRepository;
 import com.smartbiz.backend.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -69,7 +69,7 @@ public class AuthService {
                                 .phone(registerRequest.getPhone())
                                 .password(passwordEncoder.encode(registerRequest.getPassword()))
                                 .fullName(registerRequest.getFullName())
-                                .role(com.smartbiz.backend.entity.Role.BUSINESS_OWNER) // Default role
+                                .role(com.smartbiz.backend.enums.Role.BUSINESS_OWNER) // Default role
                                 .status(Status.ACTIVE)
                                 .build();
 

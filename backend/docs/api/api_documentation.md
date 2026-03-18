@@ -3,7 +3,7 @@
 This document provides a comprehensive overview of the Spring Boot backend APIs for the SmartBiz application.
 
 ## 1. Authentication (`/auth`)
-*All endpoints here (except Login and Register) require the `Authorization: Bearer <token>` header.*
+*All endpoints here (except Login and register OTP flow) require the `Authorization: Bearer <token>` header.*
 
 ### 1.1. Login
 - **URL**: `/auth/login`
@@ -43,10 +43,55 @@ This document provides a comprehensive overview of the Spring Boot backend APIs 
     "fullName": "John Doe"
   }
   ```
-- **Response Body**: Returns the [LoginResponse](file:///e:/vscode_Java/SmartBiz/backend/src/main/java/com/smartbiz/backend/dto/LoginResponse.java#10-25) object with token.
-- **Error Response**: `400 Bad Request` if email/phone exists.
+- **Response Body**:
+  ```json
+  {
+    "message": "OTP has been sent to your email. Please verify to complete registration.",
+    "email": "email@example.com",
+    "expiresAt": "2026-03-18T14:35:21",
+    "expiresInSeconds": 30
+  }
+  ```
+- **Notes**:
+  - Hệ thống tạo tài khoản ở trạng thái `INACTIVE`.
+  - OTP là mã 6 chữ số và chỉ có hiệu lực trong 30 giây.
 
-### 1.3. Get Current User Profille
+### 1.3. Verify Register OTP
+- **URL**: `/auth/register/verify`
+- **Method**: `POST`
+- **Request Body**:
+  ```json
+  {
+    "email": "email@example.com",
+    "otpCode": "123456"
+  }
+  ```
+- **Response Body**: Trả về `LoginResponse` (có JWT token) sau khi xác thực OTP thành công.
+- **Error Response**:
+  - `400 Bad Request`: OTP sai/hết hạn/đã xác thực.
+  - `404 Not Found`: Không tìm thấy đăng ký đang chờ xác thực.
+
+### 1.4. Resend Register OTP
+- **URL**: `/auth/register/resend`
+- **Method**: `POST`
+- **Request Body**:
+  ```json
+  {
+    "email": "email@example.com"
+  }
+  ```
+- **Response Body**:
+  ```json
+  {
+    "message": "A new OTP has been sent to your email",
+    "email": "email@example.com",
+    "expiresAt": "2026-03-18T14:36:08",
+    "expiresInSeconds": 30
+  }
+  ```
+- **Notes**: OTP cũ chưa dùng sẽ bị vô hiệu hóa ngay khi gửi lại mã mới.
+
+### 1.5. Get Current User Profille
 - **URL**: `/auth/me`
 - **Method**: `GET`
 - **Response Body**:
@@ -61,7 +106,7 @@ This document provides a comprehensive overview of the Spring Boot backend APIs 
   }
   ```
 
-### 1.4. Update Profile
+### 1.6. Update Profile
 - **URL**: `/auth/profile`
 - **Method**: `PUT`
 - **Request Body**:
@@ -73,7 +118,7 @@ This document provides a comprehensive overview of the Spring Boot backend APIs 
   ```
 - **Response Body**: Updated user details.
 
-### 1.5. Change Password
+### 1.7. Change Password
 - **URL**: `/auth/change-password`
 - **Method**: `PUT`
 - **Request Body**:

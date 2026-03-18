@@ -6,6 +6,10 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import com.smartbiz.backend.enums.Role;
+import com.smartbiz.backend.enums.SalaryType;
+import com.smartbiz.backend.enums.Status;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;

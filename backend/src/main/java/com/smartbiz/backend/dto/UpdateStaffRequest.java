@@ -1,9 +1,10 @@
 package com.smartbiz.backend.dto;
 
-import com.smartbiz.backend.entity.SalaryType;
 import lombok.Data;
 
 import java.math.BigDecimal;
+
+import com.smartbiz.backend.enums.SalaryType;
 
 @Data
 public class UpdateStaffRequest {

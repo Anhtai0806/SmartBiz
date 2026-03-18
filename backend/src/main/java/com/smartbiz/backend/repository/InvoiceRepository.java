@@ -1,7 +1,8 @@
 package com.smartbiz.backend.repository;
 
 import com.smartbiz.backend.entity.Invoice;
-import com.smartbiz.backend.entity.PaymentMethod;
+import com.smartbiz.backend.enums.PaymentMethod;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

@@ -1,4 +1,4 @@
-package com.smartbiz.backend.entity;
+package com.smartbiz.backend.enums;
 
 /**
  * Trạng thái của bàn trong cửa hàng

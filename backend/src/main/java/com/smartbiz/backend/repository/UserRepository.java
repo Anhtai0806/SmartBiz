@@ -1,7 +1,8 @@
 package com.smartbiz.backend.repository;
 
-import com.smartbiz.backend.entity.Role;
 import com.smartbiz.backend.entity.User;
+import com.smartbiz.backend.enums.Role;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

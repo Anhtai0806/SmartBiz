@@ -2,6 +2,7 @@ package com.smartbiz.backend.service;
 
 import com.smartbiz.backend.dto.*;
 import com.smartbiz.backend.entity.*;
+import com.smartbiz.backend.enums.TableStatus;
 import com.smartbiz.backend.exception.ResourceNotFoundException;
 import com.smartbiz.backend.exception.UnauthorizedException;
 import com.smartbiz.backend.repository.*;

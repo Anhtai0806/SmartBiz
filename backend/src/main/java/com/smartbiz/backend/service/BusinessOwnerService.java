@@ -2,6 +2,8 @@ package com.smartbiz.backend.service;
 
 import com.smartbiz.backend.dto.*;
 import com.smartbiz.backend.entity.*;
+import com.smartbiz.backend.enums.Role;
+import com.smartbiz.backend.enums.Status;
 import com.smartbiz.backend.exception.EmailOrPhoneAlreadyExistsException;
 import com.smartbiz.backend.exception.InvalidRoleException;
 import com.smartbiz.backend.exception.ResourceNotFoundException;

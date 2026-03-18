@@ -1,6 +1,7 @@
 package com.smartbiz.backend.dto;
 
-import com.smartbiz.backend.entity.TableStatus;
+import com.smartbiz.backend.enums.TableStatus;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;

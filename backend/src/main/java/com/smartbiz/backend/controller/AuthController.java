@@ -4,7 +4,10 @@ import com.smartbiz.backend.dto.ChangePasswordRequest;
 import com.smartbiz.backend.dto.LoginRequest;
 import com.smartbiz.backend.dto.LoginResponse;
 import com.smartbiz.backend.dto.LogoutResponse;
+import com.smartbiz.backend.dto.RegisterOtpResponse;
+import com.smartbiz.backend.dto.RegisterOtpVerifyRequest;
 import com.smartbiz.backend.dto.RegisterRequest;
+import com.smartbiz.backend.dto.ResendRegisterOtpRequest;
 import com.smartbiz.backend.dto.UpdateProfileRequest;
 import com.smartbiz.backend.dto.UserResponse;
 import com.smartbiz.backend.entity.User;
@@ -37,9 +40,21 @@ public class AuthController {
      * Public endpoint - anyone can register
      */
     @PostMapping("/register")
-    public ResponseEntity<LoginResponse> register(@Valid @RequestBody RegisterRequest registerRequest) {
-        LoginResponse response = authService.register(registerRequest);
+    public ResponseEntity<RegisterOtpResponse> register(@Valid @RequestBody RegisterRequest registerRequest) {
+        RegisterOtpResponse response = authService.register(registerRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/register/verify")
+    public ResponseEntity<LoginResponse> verifyRegisterOtp(@Valid @RequestBody RegisterOtpVerifyRequest request) {
+        LoginResponse response = authService.verifyRegisterOtp(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/register/resend")
+    public ResponseEntity<RegisterOtpResponse> resendRegisterOtp(@Valid @RequestBody ResendRegisterOtpRequest request) {
+        RegisterOtpResponse response = authService.resendRegisterOtp(request);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -60,13 +75,10 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !authentication.isAuthenticated()) {
+        User user = getAuthenticatedUser();
+        if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-
-        User user = (User) authentication.getPrincipal();
 
         UserResponse response = UserResponse.builder()
                 .id(user.getId())
@@ -82,11 +94,10 @@ public class AuthController {
 
     @PutMapping("/profile")
     public ResponseEntity<UserResponse> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
+        User user = getAuthenticatedUser();
+        if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        User user = (User) authentication.getPrincipal();
 
         UserResponse response = authService.updateProfile(user.getId(), request);
         return ResponseEntity.ok(response);
@@ -94,14 +105,26 @@ public class AuthController {
 
     @PutMapping("/change-password")
     public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
+        User user = getAuthenticatedUser();
+        if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        User user = (User) authentication.getPrincipal();
 
         authService.changePassword(user.getId(), request);
         return ResponseEntity.ok().build();
+    }
+
+    private User getAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (!(principal instanceof User user)) {
+            return null;
+        }
+        return user;
     }
 
 }

@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.smartbiz.backend.enums.PaymentMethod;
+
 @Entity
 @Table(name = "payment_transactions")
 @Data

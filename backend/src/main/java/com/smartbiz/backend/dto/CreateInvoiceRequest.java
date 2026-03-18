@@ -1,8 +1,10 @@
 package com.smartbiz.backend.dto;
 
 import lombok.Data;
+
+import com.smartbiz.backend.enums.PaymentMethod;
+
 import jakarta.validation.constraints.NotNull;
-import com.smartbiz.backend.entity.PaymentMethod;
 
 @Data
 public class CreateInvoiceRequest {

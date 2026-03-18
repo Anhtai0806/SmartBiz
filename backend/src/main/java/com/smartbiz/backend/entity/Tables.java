@@ -6,6 +6,8 @@ import lombok.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.smartbiz.backend.enums.TableStatus;
+
 @Entity
 @Table(name = "tables")
 @Data

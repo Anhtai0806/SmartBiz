@@ -1,7 +1,8 @@
 package com.smartbiz.backend.repository;
 
 import com.smartbiz.backend.entity.Tables;
-import com.smartbiz.backend.entity.TableStatus;
+import com.smartbiz.backend.enums.TableStatus;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

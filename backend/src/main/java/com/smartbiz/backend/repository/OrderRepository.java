@@ -1,7 +1,8 @@
 package com.smartbiz.backend.repository;
 
 import com.smartbiz.backend.entity.Order;
-import com.smartbiz.backend.entity.OrderStatus;
+import com.smartbiz.backend.enums.OrderStatus;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

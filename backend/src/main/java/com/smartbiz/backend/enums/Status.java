@@ -1,4 +1,4 @@
-package com.smartbiz.backend.entity;
+package com.smartbiz.backend.enums;
 
 public enum Status {
     ACTIVE,

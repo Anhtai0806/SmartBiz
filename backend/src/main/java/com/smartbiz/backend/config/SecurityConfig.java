@@ -71,7 +71,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
                         // Public endpoints
-                        .requestMatchers("/auth/login", "/auth/register").permitAll()
+                        .requestMatchers("/auth/login", "/auth/register", "/auth/register/verify",
+                                "/auth/register/resend").permitAll()
 
                         // Admin endpoints - Only ADMIN role
                         .requestMatchers("/admin/**").hasRole("ADMIN")

@@ -1,6 +1,5 @@
 package com.smartbiz.backend.dto;
 
-import com.smartbiz.backend.entity.PaymentMethod;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,6 +7,8 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import com.smartbiz.backend.enums.PaymentMethod;
 
 @Data
 @NoArgsConstructor

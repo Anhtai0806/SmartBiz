@@ -7,9 +7,10 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import com.smartbiz.backend.entity.SalaryType;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
+
+import com.smartbiz.backend.enums.SalaryType;
 
 @Data
 @NoArgsConstructor

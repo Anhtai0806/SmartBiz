@@ -5,10 +5,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import com.smartbiz.backend.entity.SalaryType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
+
+import com.smartbiz.backend.enums.SalaryType;
 
 @Data
 @NoArgsConstructor

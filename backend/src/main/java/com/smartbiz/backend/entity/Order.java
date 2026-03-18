@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.smartbiz.backend.enums.OrderStatus;
+
 @Entity
 @Table(name = "orders")
 @Data

@@ -1,4 +1,4 @@
-package com.smartbiz.backend.entity;
+package com.smartbiz.backend.enums;
 
 /**
  * Phương thức thanh toán
