@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import './Login.css';
 
 const Login = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [formData, setFormData] = useState({
         username: '',
         password: '',
@@ -14,34 +15,65 @@ const Login = () => {
     const [errors, setErrors] = useState({});
     const [isLoading, setIsLoading] = useState(false);
 
+    const redirectByRole = useCallback((role) => {
+        switch (role) {
+            case 'ADMIN':
+                navigate('/admin/dashboard');
+                break;
+            case 'BUSINESS_OWNER':
+                navigate('/owner/dashboard');
+                break;
+            case 'CASHIER':
+                navigate('/cashier/dashboard');
+                break;
+            case 'STAFF':
+                navigate('/staff/dashboard');
+                break;
+            case 'KITCHEN':
+                navigate('/kitchen/dashboard');
+                break;
+            default:
+                navigate('/');
+                break;
+        }
+    }, [navigate]);
+
     useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const oauthError = params.get('error');
+        const oauthToken = params.get('token');
+        const oauthRole = params.get('role');
+
+        if (oauthError) {
+            setErrors({ general: oauthError });
+            return;
+        }
+
+        if (oauthToken && oauthRole) {
+            localStorage.setItem('token', oauthToken);
+            localStorage.setItem('role', oauthRole);
+            localStorage.setItem('email', params.get('email') || '');
+            localStorage.setItem('userId', params.get('userId') || '');
+            localStorage.setItem('fullName', params.get('fullName') || '');
+            const storeId = params.get('storeId');
+            if (storeId && storeId !== 'null') {
+                localStorage.setItem('storeId', storeId);
+            } else {
+                localStorage.removeItem('storeId');
+            }
+            localStorage.setItem('rememberMe', 'true');
+            redirectByRole(oauthRole);
+            return;
+        }
+
         // Auto-redirect if already logged in
         const token = localStorage.getItem('token');
         const role = localStorage.getItem('role');
-        
+
         if (token && role) {
-            switch (role) {
-                case 'ADMIN':
-                    navigate('/admin/dashboard');
-                    break;
-                case 'BUSINESS_OWNER':
-                    navigate('/owner/dashboard');
-                    break;
-                case 'CASHIER':
-                    navigate('/cashier/dashboard');
-                    break;
-                case 'STAFF':
-                    navigate('/staff/dashboard');
-                    break;
-                case 'KITCHEN':
-                    navigate('/kitchen/dashboard');
-                    break;
-                default:
-                    // keep on login page if role is unrecognized
-                    break;
-            }
+            redirectByRole(role);
         }
-    }, [navigate]);
+    }, [location.search, navigate, redirectByRole]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -104,25 +136,7 @@ const Login = () => {
             localStorage.setItem('rememberMe', formData.rememberMe.toString());
 
             // Role-based redirection
-            switch (response.role) {
-                case 'ADMIN':
-                    navigate('/admin/dashboard');
-                    break;
-                case 'BUSINESS_OWNER':
-                    navigate('/owner/dashboard');
-                    break;
-                case 'CASHIER':
-                    navigate('/cashier/dashboard');
-                    break;
-                case 'STAFF':
-                    navigate('/staff/dashboard');
-                    break;
-                case 'KITCHEN':
-                    navigate('/kitchen/dashboard');
-                    break;
-                default:
-                    navigate('/');
-            }
+            redirectByRole(response.role);
         } catch (error) {
             setErrors({
                 general: error.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.'
@@ -207,9 +221,11 @@ const Login = () => {
                     </div>
 
                     <div className="social-login">
-                        <button className="social-btn">
-                            <span>🔵</span> Google
-                        </button>
+
+                        <a href="http://localhost:8080/oauth2/authorization/google" className="social-btn">
+                            🔵 Google
+                        </a>
+
                         <button className="social-btn">
                             <span>📘</span> Facebook
                         </button>

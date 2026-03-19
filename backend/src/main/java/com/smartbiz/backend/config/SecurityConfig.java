@@ -64,15 +64,18 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(
+            HttpSecurity http,
+            OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler,
+            OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(authz -> authz
                         // Public endpoints
                         .requestMatchers("/auth/login", "/auth/register", "/auth/register/verify",
-                                "/auth/register/resend")
+                                "/auth/register/resend", "/oauth2/**", "/login/oauth2/**")
                         .permitAll()
 
                         // Admin endpoints - Only ADMIN role
@@ -92,6 +95,13 @@ public class SecurityConfig {
 
                         // All other requests require authentication
                         .anyRequest().authenticated())
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(authz -> authz
+                                .baseUri("/oauth2/authorization"))
+                        .redirectionEndpoint(redir -> redir
+                                .baseUri("/login/oauth2/code/*"))
+                        .successHandler(oAuth2AuthenticationSuccessHandler)
+                        .failureHandler(oAuth2AuthenticationFailureHandler))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

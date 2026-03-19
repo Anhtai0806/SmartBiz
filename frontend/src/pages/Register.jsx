@@ -282,9 +282,9 @@ const Register = () => {
                     </div>
 
                     <div className="social-register">
-                        <button className="social-btn">
-                            <span>🔵</span> Google
-                        </button>
+                        <a href="http://localhost:8080/oauth2/authorization/google" className="social-btn">
+                            🔵 Google
+                        </a>
                         <button className="social-btn">
                             <span>📘</span> Facebook
                         </button>

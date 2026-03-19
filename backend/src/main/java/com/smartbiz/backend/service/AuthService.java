@@ -11,6 +11,7 @@ import com.smartbiz.backend.dto.UpdateProfileRequest;
 import com.smartbiz.backend.dto.UserResponse;
 import com.smartbiz.backend.entity.PendingRegistration;
 import com.smartbiz.backend.entity.User;
+import com.smartbiz.backend.enums.Role;
 import com.smartbiz.backend.enums.Status;
 import com.smartbiz.backend.exception.EmailOrPhoneAlreadyExistsException;
 import com.smartbiz.backend.exception.InvalidOtpException;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -63,6 +65,23 @@ public class AuthService {
                                 .status(user.getStatus().name())
                                 .storeId(user.getStaffStores().isEmpty() ? null : user.getStaffStores().get(0).getId())
                                 .build();
+        }
+
+        @Transactional
+        public LoginResponse loginWithOAuth2(String email, String fullName) {
+                if (email == null || email.isBlank()) {
+                        throw new RuntimeException("Google account does not provide email");
+                }
+
+                String normalizedEmail = email.trim().toLowerCase();
+                User user = userRepository.findByEmail(normalizedEmail)
+                                .orElseGet(() -> createOAuth2User(normalizedEmail, fullName));
+
+                user.setLastLoginAt(LocalDateTime.now());
+                User savedUser = userRepository.save(user);
+
+                String token = jwtUtil.generateToken(savedUser);
+                return buildLoginResponse(savedUser, token);
         }
 
         @Transactional
@@ -229,6 +248,19 @@ public class AuthService {
                                 .role(user.getRole().name())
                                 .status(user.getStatus().name())
                                 .storeId(user.getStaffStores().isEmpty() ? null : user.getStaffStores().get(0).getId())
+                                .build();
+        }
+
+        private User createOAuth2User(String email, String fullName) {
+                String defaultName = (fullName == null || fullName.isBlank()) ? email : fullName;
+                String randomPassword = passwordEncoder.encode("oauth2-" + UUID.randomUUID());
+
+                return User.builder()
+                                .email(email)
+                                .password(randomPassword)
+                                .fullName(defaultName)
+                                .role(Role.BUSINESS_OWNER)
+                                .status(Status.ACTIVE)
                                 .build();
         }
 
