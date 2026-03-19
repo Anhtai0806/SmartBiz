@@ -15,4 +15,6 @@ public interface OtpCodeRepository extends JpaRepository<OtpCode, Long> {
     );
 
     List<OtpCode> findByUserIdAndOtpTypeAndIsUsedFalse(UUID userId, OtpCode.OtpType otpType);
+
+    void deleteByExpiresAtBeforeOrIsUsedTrue(java.time.LocalDateTime now);
 }
