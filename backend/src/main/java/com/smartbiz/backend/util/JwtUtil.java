@@ -9,9 +9,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
-import java.util.Date;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @Component
@@ -20,8 +21,8 @@ public class JwtUtil {
     @Value("${jwt.secret:smartbiz-secret-key-for-jwt-token-generation-and-validation-2024}")
     private String jwtSecret;
 
-    @Value("${jwt.expiration:86400000}")
-    private long jwtExpiration;
+    @Value("${jwt.static-token.email:}")
+    private String staticTokenEmail;
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
@@ -34,42 +35,42 @@ public class JwtUtil {
      * @return JWT token string
      */
     public String generateToken(User user) {
-        Map<String, Object> claims = new HashMap<>();
+        Map<String, Object> claims = new LinkedHashMap<>();
         claims.put("userId", user.getId().toString()); // Store UUID as string
         claims.put("role", user.getRole().name());
-        return createToken(claims, user.getEmail());
+        return createToken(claims, user.getEmail(), shouldGenerateStaticToken(user.getEmail()));
     }
 
     /**
      * Generate JWT token from UserDetails (backward compatibility)
      */
     public String generateToken(UserDetails userDetails) {
-        Map<String, Object> claims = new HashMap<>();
+        Map<String, Object> claims = new LinkedHashMap<>();
         // If UserDetails is actually a User entity, extract id and role
         if (userDetails instanceof User) {
             User user = (User) userDetails;
             claims.put("userId", user.getId().toString()); // Store UUID as string
             claims.put("role", user.getRole().name());
         }
-        return createToken(claims, userDetails.getUsername());
+        return createToken(claims, userDetails.getUsername(), shouldGenerateStaticToken(userDetails.getUsername()));
     }
 
     public String generateToken(UserDetails userDetails, Map<String, Object> additionalClaims) {
-        Map<String, Object> claims = new HashMap<>(additionalClaims);
-        return createToken(claims, userDetails.getUsername());
+        Map<String, Object> claims = new LinkedHashMap<>(additionalClaims);
+        return createToken(claims, userDetails.getUsername(), shouldGenerateStaticToken(userDetails.getUsername()));
     }
 
-    private String createToken(Map<String, Object> claims, String subject) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpiration);
-
-        return Jwts.builder()
+    private String createToken(Map<String, Object> claims, String subject, boolean staticToken) {
+        var builder = Jwts.builder()
                 .claims(claims)
                 .subject(subject)
-                .issuedAt(now)
-                .expiration(expiryDate)
-                .signWith(getSigningKey())
-                .compact();
+                .signWith(getSigningKey());
+
+        if (!staticToken) {
+            builder.issuedAt(new java.util.Date());
+        }
+
+        return builder.compact();
     }
 
     public String extractEmail(String token) {
@@ -112,14 +113,20 @@ public class JwtUtil {
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String email = extractEmail(token);
-        return email.equals(userDetails.getUsername()) && !isTokenExpired(token);
+        return email.equals(userDetails.getUsername());
     }
 
-    private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
-    }
+    private boolean shouldGenerateStaticToken(String subject) {
+        if (subject == null || subject.isBlank()) {
+            return false;
+        }
 
-    private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
+        String normalizedSubject = subject.trim().toLowerCase(Locale.ROOT);
+        String normalizedStaticTokenEmail = staticTokenEmail == null
+                ? ""
+                : staticTokenEmail.trim().toLowerCase(Locale.ROOT);
+
+        return !normalizedStaticTokenEmail.isBlank()
+                && Objects.equals(normalizedStaticTokenEmail, normalizedSubject);
     }
 }

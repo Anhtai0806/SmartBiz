@@ -7,12 +7,14 @@ import com.smartbiz.backend.enums.TableStatus;
 import com.smartbiz.backend.exception.ResourceNotFoundException;
 import com.smartbiz.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -29,8 +31,8 @@ public class OrderService {
         /**
          * Get order by table
          */
-        public OrderResponse getOrderByTable(Long tableId) {
-                List<Order> orders = orderRepository.findActiveOrderByTableId(tableId);
+        public OrderResponse getOrderByTable(@NonNull Long tableId) {
+                List<Order> orders = orderRepository.findActiveOrderByTableId(requireValue(tableId, "tableId"));
 
                 if (orders.isEmpty()) {
                         throw new ResourceNotFoundException(
@@ -40,26 +42,26 @@ public class OrderService {
                 // Return the most recent order (first in the list due to ORDER BY createdAt
                 // DESC)
                 Order order = orders.get(0);
-                return convertToResponse(order);
+                return convertToResponse(requireValue(order, "order"));
         }
 
         /**
          * Get orders by shift
          */
-        public List<OrderResponse> getOrdersByShift(Long shiftId) {
-                List<Order> orders = orderRepository.findByShiftId(shiftId);
+        public List<OrderResponse> getOrdersByShift(@NonNull Long shiftId) {
+                List<Order> orders = orderRepository.findByShiftId(requireValue(shiftId, "shiftId"));
                 return orders.stream()
-                                .map(this::convertToResponse)
+                                .map(order -> convertToResponse(requireValue(order, "order")))
                                 .collect(Collectors.toList());
         }
 
         /**
          * Get orders by store
          */
-        public List<OrderResponse> getOrdersByStore(Long storeId) {
-                List<Order> orders = orderRepository.findByStoreId(storeId);
+        public List<OrderResponse> getOrdersByStore(@NonNull Long storeId) {
+                List<Order> orders = orderRepository.findByStoreId(requireValue(storeId, "storeId"));
                 return orders.stream()
-                                .map(this::convertToResponse)
+                                .map(order -> convertToResponse(requireValue(order, "order")))
                                 .collect(Collectors.toList());
         }
 
@@ -67,13 +69,15 @@ public class OrderService {
          * Create a new order (STAFF)
          */
         @Transactional
-        public OrderResponse createOrder(UUID staffId, OrderRequest request) {
-                Tables table = tablesRepository.findById(request.getTableId())
+        public OrderResponse createOrder(@NonNull UUID staffId, @NonNull OrderRequest request) {
+                Long tableId = requireValue(request.getTableId(), "tableId");
+                Tables table = tablesRepository.findById(tableId)
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Table not found with id: " + request.getTableId()));
 
                 // Find or validate shift
-                StaffShift shift = staffShiftRepository.findById(request.getShiftId()).orElse(null);
+                Long shiftId = requireValue(request.getShiftId(), "shiftId");
+                StaffShift shift = staffShiftRepository.findById(shiftId).orElse(null);
 
                 // If shift not found or doesn't belong to current user, try to find today's
                 // shift
@@ -103,53 +107,56 @@ public class OrderService {
                                 .orderItems(new ArrayList<>())
                                 .build();
 
-                Order savedOrder = orderRepository.save(order);
+                Order savedOrder = orderRepository.save(requireValue(order, "order"));
 
                 // Add items if provided
                 if (request.getItems() != null && !request.getItems().isEmpty()) {
                         for (OrderItemRequest itemRequest : request.getItems()) {
-                                addItemToOrder(savedOrder.getId(), itemRequest);
+                                addItemToOrder(requireValue(savedOrder.getId(), "savedOrder.id"),
+                                                requireValue(itemRequest, "itemRequest"));
                         }
                 }
 
                 // Update table status
                 table.setStatus(TableStatus.SERVING);
-                tablesRepository.save(table);
+                tablesRepository.save(requireValue(table, "table"));
 
-                return convertToResponse(orderRepository.findById(savedOrder.getId()).orElseThrow());
+                Long savedOrderId = requireValue(savedOrder.getId(), "savedOrder.id");
+                return convertToResponse(requireValue(orderRepository.findById(savedOrderId).orElseThrow(), "savedOrder"));
         }
 
         /**
          * Add item to order
          */
         @Transactional
-        public OrderResponse addItemToOrder(Long orderId, OrderItemRequest request) {
-                Order order = orderRepository.findById(orderId)
+        public OrderResponse addItemToOrder(@NonNull Long orderId, @NonNull OrderItemRequest request) {
+                Order order = orderRepository.findById(requireValue(orderId, "orderId"))
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Order not found with id: " + orderId));
 
-                MenuItem menuItem = menuItemRepository.findById(request.getMenuItemId())
+                Long menuItemId = requireValue(request.getMenuItemId(), "menuItemId");
+                MenuItem menuItem = menuItemRepository.findById(menuItemId)
                                 .orElseThrow(
                                                 () -> new ResourceNotFoundException("Menu item not found with id: "
                                                                 + request.getMenuItemId()));
 
-                OrderItem orderItem = OrderItem.builder()
+                OrderItem orderItem = requireValue(OrderItem.builder()
                                 .order(order)
                                 .menuItem(menuItem)
                                 .quantity(request.getQuantity())
                                 .price(menuItem.getPrice())
-                                .build();
+                                .build(), "orderItem");
 
-                orderItemRepository.save(orderItem);
-                return convertToResponse(order);
+                orderItemRepository.save(requireValue(orderItem, "orderItem"));
+                return convertToResponse(requireValue(order, "order"));
         }
 
         /**
          * Update order status (CASHIER)
          */
         @Transactional
-        public OrderResponse updateOrderStatus(Long orderId, OrderStatusRequest request) {
-                Order order = orderRepository.findById(orderId)
+        public OrderResponse updateOrderStatus(@NonNull Long orderId, @NonNull OrderStatusRequest request) {
+                Order order = orderRepository.findById(requireValue(orderId, "orderId"))
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Order not found with id: " + orderId));
 
@@ -160,20 +167,20 @@ public class OrderService {
                         order.getTable().setStatus(TableStatus.WAITING_PAYMENT);
                 }
 
-                Order updated = orderRepository.save(order);
-                return convertToResponse(updated);
+                Order updated = orderRepository.save(requireValue(order, "order"));
+                return convertToResponse(requireValue(updated, "updatedOrder"));
         }
 
         /**
          * Remove item from order
          */
         @Transactional
-        public OrderResponse removeItemFromOrder(Long orderId, Long itemId) {
-                Order order = orderRepository.findById(orderId)
+        public OrderResponse removeItemFromOrder(@NonNull Long orderId, @NonNull Long itemId) {
+                Order order = orderRepository.findById(requireValue(orderId, "orderId"))
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Order not found with id: " + orderId));
 
-                OrderItem itemToRemove = orderItemRepository.findById(itemId)
+                OrderItem itemToRemove = orderItemRepository.findById(requireValue(itemId, "itemId"))
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Order item not found with id: " + itemId));
 
@@ -183,26 +190,27 @@ public class OrderService {
                 }
 
                 // Check if this is the last item
-                List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+                List<OrderItem> items = orderItemRepository.findByOrderId(requireValue(orderId, "orderId"));
                 if (items.size() <= 1) {
                         throw new IllegalStateException(
                                         "Cannot remove the last item from order. Please cancel the order instead.");
                 }
 
-                orderItemRepository.delete(itemToRemove);
-                return convertToResponse(order);
+                orderItemRepository.delete(requireValue(itemToRemove, "itemToRemove"));
+                return convertToResponse(requireValue(order, "order"));
         }
 
         /**
          * Update order item quantity
          */
         @Transactional
-        public OrderResponse updateOrderItem(Long orderId, Long itemId, UpdateOrderItemRequest request) {
-                Order order = orderRepository.findById(orderId)
+        public OrderResponse updateOrderItem(@NonNull Long orderId, @NonNull Long itemId,
+                        @NonNull UpdateOrderItemRequest request) {
+                Order order = orderRepository.findById(requireValue(orderId, "orderId"))
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Order not found with id: " + orderId));
 
-                OrderItem item = orderItemRepository.findById(itemId)
+                OrderItem item = orderItemRepository.findById(requireValue(itemId, "itemId"))
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Order item not found with id: " + itemId));
 
@@ -212,17 +220,18 @@ public class OrderService {
                 }
 
                 item.setQuantity(request.getQuantity());
-                orderItemRepository.save(item);
+                orderItemRepository.save(requireValue(item, "item"));
 
-                return convertToResponse(order);
+                return convertToResponse(requireValue(order, "order"));
         }
 
         /**
          * Convert Order entity to response DTO
          */
-        public OrderResponse convertToResponse(Order order) {
-                List<OrderItemResponse> items = orderItemRepository.findByOrderId(order.getId()).stream()
-                                .map(this::convertToItemResponse)
+        public OrderResponse convertToResponse(@NonNull Order order) {
+                Long orderId = requireValue(order.getId(), "order.id");
+                List<OrderItemResponse> items = orderItemRepository.findByOrderId(orderId).stream()
+                                .map(item -> convertToItemResponse(requireValue(item, "item")))
                                 .collect(Collectors.toList());
 
                 BigDecimal totalAmount = items.stream()
@@ -243,7 +252,7 @@ public class OrderService {
                                 .build();
         }
 
-        private OrderItemResponse convertToItemResponse(OrderItem item) {
+        private OrderItemResponse convertToItemResponse(@NonNull OrderItem item) {
                 BigDecimal subtotal = item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
 
                 return OrderItemResponse.builder()
@@ -264,7 +273,7 @@ public class OrderService {
                 List<Order> orders = orderRepository.findByStatusInOrderByCreatedAtAsc(
                                 List.of(OrderStatus.NEW, OrderStatus.PROCESSING));
                 return orders.stream()
-                                .map(this::convertToResponse)
+                                .map(order -> convertToResponse(requireValue(order, "order")))
                                 .collect(Collectors.toList());
         }
 
@@ -272,16 +281,16 @@ public class OrderService {
          * Mark an order as completed (DONE status)
          */
         @Transactional
-        public OrderResponse markOrderAsCompleted(Long orderId) {
-                Order order = orderRepository.findById(orderId)
+        public OrderResponse markOrderAsCompleted(@NonNull Long orderId) {
+                Order order = orderRepository.findById(requireValue(orderId, "orderId"))
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Order not found with id: " + orderId));
 
                 // Update status to DONE
                 order.setStatus(OrderStatus.DONE);
-                orderRepository.save(order);
+                orderRepository.save(requireValue(order, "order"));
 
-                return convertToResponse(order);
+                return convertToResponse(requireValue(order, "order"));
         }
 
         /**
@@ -300,5 +309,10 @@ public class OrderService {
                                 .withHour(0).withMinute(0).withSecond(0).withNano(0);
                 return orderRepository.countByStatusAndCreatedAtAfter(
                                 OrderStatus.DONE, startOfDay);
+        }
+
+        @NonNull
+        private <T> T requireValue(T value, String fieldName) {
+                return Objects.requireNonNull(value, fieldName + " must not be null");
         }
 }

@@ -6,10 +6,12 @@ import com.smartbiz.backend.exception.ResourceNotFoundException;
 import com.smartbiz.backend.exception.UnauthorizedException;
 import com.smartbiz.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -24,10 +26,10 @@ public class MenuService {
     /**
      * Get all categories for a store
      */
-    public List<MenuCategoryResponse> getCategoriesByStore(Long storeId) {
-        List<MenuCategory> categories = menuCategoryRepository.findByStoreId(storeId);
+    public List<MenuCategoryResponse> getCategoriesByStore(@NonNull Long storeId) {
+        List<MenuCategory> categories = menuCategoryRepository.findByStoreId(requireValue(storeId, "storeId"));
         return categories.stream()
-                .map(this::convertToCategoryResponse)
+                .map(category -> convertToCategoryResponse(requireValue(category, "category")))
                 .collect(Collectors.toList());
     }
 
@@ -36,9 +38,10 @@ public class MenuService {
      * Only owner of the store can create categories
      */
     @Transactional
-    public MenuCategoryResponse createCategory(UUID ownerId, MenuCategoryRequest request) {
+    public MenuCategoryResponse createCategory(@NonNull UUID ownerId, @NonNull MenuCategoryRequest request) {
         // Verify store exists
-        Store store = storeRepository.findById(request.getStoreId())
+        Long storeId = requireValue(request.getStoreId(), "storeId");
+        Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Store not found with id: " + request.getStoreId()));
 
         // Verify ownership
@@ -46,21 +49,22 @@ public class MenuService {
             throw new UnauthorizedException("You don't have permission to create categories for this store");
         }
 
-        MenuCategory category = MenuCategory.builder()
+        MenuCategory category = requireValue(MenuCategory.builder()
                 .store(store)
                 .name(request.getName())
-                .build();
+                .build(), "category");
 
-        MenuCategory saved = menuCategoryRepository.save(category);
-        return convertToCategoryResponse(saved);
+        MenuCategory saved = menuCategoryRepository.save(requireValue(category, "category"));
+        return convertToCategoryResponse(requireValue(saved, "savedCategory"));
     }
 
     /**
      * Update a menu category
      */
     @Transactional
-    public MenuCategoryResponse updateCategory(UUID ownerId, Long categoryId, MenuCategoryRequest request) {
-        MenuCategory category = menuCategoryRepository.findById(categoryId)
+    public MenuCategoryResponse updateCategory(@NonNull UUID ownerId, @NonNull Long categoryId,
+            @NonNull MenuCategoryRequest request) {
+        MenuCategory category = menuCategoryRepository.findById(requireValue(categoryId, "categoryId"))
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + categoryId));
 
         // Verify ownership
@@ -69,16 +73,16 @@ public class MenuService {
         }
 
         category.setName(request.getName());
-        MenuCategory updated = menuCategoryRepository.save(category);
-        return convertToCategoryResponse(updated);
+        MenuCategory updated = menuCategoryRepository.save(requireValue(category, "category"));
+        return convertToCategoryResponse(requireValue(updated, "updatedCategory"));
     }
 
     /**
      * Delete a menu category
      */
     @Transactional
-    public void deleteCategory(UUID ownerId, Long categoryId) {
-        MenuCategory category = menuCategoryRepository.findById(categoryId)
+    public void deleteCategory(@NonNull UUID ownerId, @NonNull Long categoryId) {
+        MenuCategory category = menuCategoryRepository.findById(requireValue(categoryId, "categoryId"))
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + categoryId));
 
         // Verify ownership
@@ -86,26 +90,26 @@ public class MenuService {
             throw new UnauthorizedException("You don't have permission to delete this category");
         }
 
-        menuCategoryRepository.delete(category);
+        menuCategoryRepository.delete(requireValue(category, "category"));
     }
 
     /**
      * Get all menu items for a category
      */
-    public List<MenuItemResponse> getItemsByCategory(Long categoryId) {
-        List<MenuItem> items = menuItemRepository.findByCategoryId(categoryId);
+    public List<MenuItemResponse> getItemsByCategory(@NonNull Long categoryId) {
+        List<MenuItem> items = menuItemRepository.findByCategoryId(requireValue(categoryId, "categoryId"));
         return items.stream()
-                .map(this::convertToItemResponse)
+                .map(item -> convertToItemResponse(requireValue(item, "item")))
                 .collect(Collectors.toList());
     }
 
     /**
      * Get all menu items for a store
      */
-    public List<MenuItemResponse> getItemsByStore(Long storeId) {
-        List<MenuItem> items = menuItemRepository.findByCategoryStoreId(storeId);
+    public List<MenuItemResponse> getItemsByStore(@NonNull Long storeId) {
+        List<MenuItem> items = menuItemRepository.findByCategoryStoreId(requireValue(storeId, "storeId"));
         return items.stream()
-                .map(this::convertToItemResponse)
+                .map(item -> convertToItemResponse(requireValue(item, "item")))
                 .collect(Collectors.toList());
     }
 
@@ -113,8 +117,9 @@ public class MenuService {
      * Create a new menu item
      */
     @Transactional
-    public MenuItemResponse createItem(UUID ownerId, MenuItemRequest request) {
-        MenuCategory category = menuCategoryRepository.findById(request.getCategoryId())
+    public MenuItemResponse createItem(@NonNull UUID ownerId, @NonNull MenuItemRequest request) {
+        Long categoryId = requireValue(request.getCategoryId(), "categoryId");
+        MenuCategory category = menuCategoryRepository.findById(categoryId)
                 .orElseThrow(
                         () -> new ResourceNotFoundException("Category not found with id: " + request.getCategoryId()));
 
@@ -123,23 +128,23 @@ public class MenuService {
             throw new UnauthorizedException("You don't have permission to create items for this category");
         }
 
-        MenuItem item = MenuItem.builder()
+        MenuItem item = requireValue(MenuItem.builder()
                 .category(category)
                 .name(request.getName())
                 .price(request.getPrice())
                 .status(request.getStatus())
-                .build();
+                .build(), "item");
 
-        MenuItem saved = menuItemRepository.save(item);
-        return convertToItemResponse(saved);
+        MenuItem saved = menuItemRepository.save(requireValue(item, "item"));
+        return convertToItemResponse(requireValue(saved, "savedItem"));
     }
 
     /**
      * Update a menu item
      */
     @Transactional
-    public MenuItemResponse updateItem(UUID ownerId, Long itemId, MenuItemRequest request) {
-        MenuItem item = menuItemRepository.findById(itemId)
+    public MenuItemResponse updateItem(@NonNull UUID ownerId, @NonNull Long itemId, @NonNull MenuItemRequest request) {
+        MenuItem item = menuItemRepository.findById(requireValue(itemId, "itemId"))
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found with id: " + itemId));
 
         // Verify ownership
@@ -151,16 +156,16 @@ public class MenuService {
         item.setPrice(request.getPrice());
         item.setStatus(request.getStatus());
 
-        MenuItem updated = menuItemRepository.save(item);
-        return convertToItemResponse(updated);
+        MenuItem updated = menuItemRepository.save(requireValue(item, "item"));
+        return convertToItemResponse(requireValue(updated, "updatedItem"));
     }
 
     /**
      * Delete a menu item
      */
     @Transactional
-    public void deleteItem(UUID ownerId, Long itemId) {
-        MenuItem item = menuItemRepository.findById(itemId)
+    public void deleteItem(@NonNull UUID ownerId, @NonNull Long itemId) {
+        MenuItem item = menuItemRepository.findById(requireValue(itemId, "itemId"))
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found with id: " + itemId));
 
         // Verify ownership
@@ -168,26 +173,27 @@ public class MenuService {
             throw new UnauthorizedException("You don't have permission to delete this item");
         }
 
-        menuItemRepository.delete(item);
+        menuItemRepository.delete(requireValue(item, "item"));
     }
 
     /**
      * Convert MenuCategory entity to response DTO
      */
-    private MenuCategoryResponse convertToCategoryResponse(MenuCategory category) {
+    private MenuCategoryResponse convertToCategoryResponse(@NonNull MenuCategory category) {
+        Long categoryId = requireValue(category.getId(), "categoryId");
         return MenuCategoryResponse.builder()
-                .id(category.getId())
+                .id(categoryId)
                 .storeId(category.getStore().getId())
                 .storeName(category.getStore().getName())
                 .name(category.getName())
-                .itemCount(menuItemRepository.countByCategoryId(category.getId()))
+                .itemCount(menuItemRepository.countByCategoryId(categoryId))
                 .build();
     }
 
     /**
      * Convert MenuItem entity to response DTO
      */
-    private MenuItemResponse convertToItemResponse(MenuItem item) {
+    private MenuItemResponse convertToItemResponse(@NonNull MenuItem item) {
         return MenuItemResponse.builder()
                 .id(item.getId())
                 .categoryId(item.getCategory().getId())
@@ -196,5 +202,10 @@ public class MenuService {
                 .price(item.getPrice())
                 .status(item.getStatus())
                 .build();
+    }
+
+    @NonNull
+    private <T> T requireValue(T value, String fieldName) {
+        return Objects.requireNonNull(value, fieldName + " must not be null");
     }
 }

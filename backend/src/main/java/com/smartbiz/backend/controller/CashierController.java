@@ -2,13 +2,16 @@ package com.smartbiz.backend.controller;
 
 import com.smartbiz.backend.dto.*;
 import com.smartbiz.backend.service.CashierService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Cashier-specific endpoints for dashboard and order management
@@ -27,7 +30,7 @@ public class CashierController {
     @GetMapping("/dashboard/stats")
     @PreAuthorize("hasAnyRole('CASHIER', 'BUSINESS_OWNER')")
     public ResponseEntity<CashierDashboardStatsResponse> getDashboardStats(
-            @RequestParam Long storeId) {
+            @RequestParam @NonNull Long storeId) {
         CashierDashboardStatsResponse stats = cashierService.getDashboardStats(storeId);
         return ResponseEntity.ok(stats);
     }
@@ -38,7 +41,7 @@ public class CashierController {
     @GetMapping("/orders/today")
     @PreAuthorize("hasAnyRole('CASHIER', 'STAFF', 'BUSINESS_OWNER')")
     public ResponseEntity<List<OrderResponse>> getTodayOrders(
-            @RequestParam Long storeId) {
+            @RequestParam @NonNull Long storeId) {
         List<OrderResponse> orders = cashierService.getTodayOrders(storeId);
         return ResponseEntity.ok(orders);
     }
@@ -49,7 +52,7 @@ public class CashierController {
     @GetMapping("/orders/pending-payment")
     @PreAuthorize("hasAnyRole('CASHIER', 'BUSINESS_OWNER')")
     public ResponseEntity<List<OrderResponse>> getPendingPaymentOrders(
-            @RequestParam Long storeId) {
+            @RequestParam @NonNull Long storeId) {
         List<OrderResponse> orders = cashierService.getPendingPaymentOrders(storeId);
         return ResponseEntity.ok(orders);
     }
@@ -60,7 +63,7 @@ public class CashierController {
     @GetMapping("/tables/with-orders")
     @PreAuthorize("hasAnyRole('CASHIER', 'BUSINESS_OWNER')")
     public ResponseEntity<List<TableResponse>> getTablesWithOrders(
-            @RequestParam Long storeId) {
+            @RequestParam @NonNull Long storeId) {
         List<TableResponse> tables = cashierService.getTablesWithOrders(storeId);
         return ResponseEntity.ok(tables);
     }
@@ -71,7 +74,7 @@ public class CashierController {
     @GetMapping("/staff")
     @PreAuthorize("hasAnyRole('CASHIER', 'BUSINESS_OWNER', 'STAFF')")
     public ResponseEntity<List<UserResponse>> getStoreStaff(
-            @RequestParam Long storeId) {
+            @RequestParam @NonNull Long storeId) {
         List<UserResponse> staff = cashierService.getStoreStaff(storeId);
         return ResponseEntity.ok(staff);
     }
@@ -84,20 +87,22 @@ public class CashierController {
 
     @PostMapping("/invoices")
     @PreAuthorize("hasAnyRole('CASHIER', 'BUSINESS_OWNER')")
-    public ResponseEntity<InvoiceResponse> createInvoice(@Valid @RequestBody CreateInvoiceRequest request) {
+    public ResponseEntity<InvoiceResponse> createInvoice(
+            @Valid @RequestBody @NonNull CreateInvoiceRequest request) {
         InvoiceResponse invoice = invoiceService.createInvoice(request);
         return ResponseEntity.ok(invoice);
     }
 
     @GetMapping("/qr-payment/store/{storeId}")
     @PreAuthorize("hasAnyRole('CASHIER', 'BUSINESS_OWNER', 'STAFF')")
-    public ResponseEntity<QRPaymentResponse> getStoreQR(@PathVariable Long storeId) {
+    public ResponseEntity<QRPaymentResponse> getStoreQR(@PathVariable @NonNull Long storeId) {
         // Get store owner
         com.smartbiz.backend.entity.Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new com.smartbiz.backend.exception.ResourceNotFoundException("Store not found"));
 
         com.smartbiz.backend.entity.User owner = store.getOwner();
-        QRPaymentResponse qr = businessOwnerService.getQRPaymentCode(owner.getId());
+        UUID ownerId = Objects.requireNonNull(owner.getId(), "owner.id must not be null");
+        QRPaymentResponse qr = businessOwnerService.getQRPaymentCode(ownerId);
         return ResponseEntity.ok(qr);
     }
 }

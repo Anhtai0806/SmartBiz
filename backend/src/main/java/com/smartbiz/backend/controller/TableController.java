@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,6 +16,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Table Management endpoints
@@ -30,7 +33,7 @@ public class TableController {
      * Get all tables for a store
      */
     @GetMapping("/store/{storeId}")
-    public ResponseEntity<List<TableResponse>> getTablesByStore(@PathVariable Long storeId) {
+    public ResponseEntity<List<TableResponse>> getTablesByStore(@PathVariable @NonNull Long storeId) {
         List<TableResponse> tables = tableService.getTablesByStore(storeId);
         return ResponseEntity.ok(tables);
     }
@@ -40,9 +43,9 @@ public class TableController {
      */
     @PostMapping
     @PreAuthorize("hasRole('BUSINESS_OWNER')")
-    public ResponseEntity<TableResponse> createTable(@Valid @RequestBody TableRequest request) {
+    public ResponseEntity<TableResponse> createTable(@Valid @RequestBody @NonNull TableRequest request) {
         User currentUser = getCurrentUser();
-        TableResponse table = tableService.createTable(currentUser.getId(), request);
+        TableResponse table = tableService.createTable(getCurrentUserId(currentUser), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(table);
     }
 
@@ -51,9 +54,10 @@ public class TableController {
      */
     @PostMapping("/bulk")
     @PreAuthorize("hasRole('BUSINESS_OWNER')")
-    public ResponseEntity<List<TableResponse>> bulkCreateTables(@Valid @RequestBody BulkCreateTablesRequest request) {
+    public ResponseEntity<List<TableResponse>> bulkCreateTables(
+            @Valid @RequestBody @NonNull BulkCreateTablesRequest request) {
         User currentUser = getCurrentUser();
-        List<TableResponse> tables = tableService.bulkCreateTables(currentUser.getId(), request);
+        List<TableResponse> tables = tableService.bulkCreateTables(getCurrentUserId(currentUser), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(tables);
     }
 
@@ -63,11 +67,11 @@ public class TableController {
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('STAFF', 'CASHIER', 'BUSINESS_OWNER')")
     public ResponseEntity<TableResponse> updateTableStatus(
-            @PathVariable Long id,
-            @Valid @RequestBody TableStatusRequest request) {
+            @PathVariable @NonNull Long id,
+            @Valid @RequestBody @NonNull TableStatusRequest request) {
         User currentUser = getCurrentUser();
         String role = currentUser.getAuthorities().iterator().next().getAuthority();
-        TableResponse table = tableService.updateTableStatus(id, request, currentUser.getId(), role);
+        TableResponse table = tableService.updateTableStatus(id, request, getCurrentUserId(currentUser), role);
         return ResponseEntity.ok(table);
     }
 
@@ -76,9 +80,9 @@ public class TableController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('BUSINESS_OWNER')")
-    public ResponseEntity<Void> deleteTable(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteTable(@PathVariable @NonNull Long id) {
         User currentUser = getCurrentUser();
-        tableService.deleteTable(currentUser.getId(), id);
+        tableService.deleteTable(getCurrentUserId(currentUser), id);
         return ResponseEntity.noContent().build();
     }
 
@@ -89,14 +93,24 @@ public class TableController {
     @PreAuthorize("hasAnyRole('STAFF', 'CASHIER')")
     public ResponseEntity<Map<String, Boolean>> checkWorkingHours() {
         User currentUser = getCurrentUser();
-        boolean isInWorkingHours = tableService.isInWorkingHours(currentUser.getId());
+        boolean isInWorkingHours = tableService.isInWorkingHours(getCurrentUserId(currentUser));
         Map<String, Boolean> response = new HashMap<>();
         response.put("isInWorkingHours", isInWorkingHours);
         return ResponseEntity.ok(response);
     }
 
+    @NonNull
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
+        Object principal = Objects.requireNonNull(authentication, "authentication must not be null").getPrincipal();
+        if (!(principal instanceof User user)) {
+            throw new IllegalStateException("Authenticated principal is not a User");
+        }
+        return Objects.requireNonNull(user, "authenticated user must not be null");
+    }
+
+    @NonNull
+    private UUID getCurrentUserId(@NonNull User user) {
+        return Objects.requireNonNull(user.getId(), "currentUser.id must not be null");
     }
 }

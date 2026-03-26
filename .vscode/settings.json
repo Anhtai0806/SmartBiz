@@ -1,1 +1,10 @@
-{}
+{
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-17",
+      "path": "C:\\Program Files\\Java\\jdk-17",
+      "default": true
+    }
+  ],
+  "maven.terminal.useJavaHome": true
+}

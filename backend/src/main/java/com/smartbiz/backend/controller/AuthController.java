@@ -16,11 +16,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/auth")
@@ -30,7 +33,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody @NonNull LoginRequest loginRequest) {
         LoginResponse response = authService.login(loginRequest);
         return ResponseEntity.ok(response);
     }
@@ -40,30 +43,26 @@ public class AuthController {
      * Public endpoint - anyone can register
      */
     @PostMapping("/register")
-    public ResponseEntity<RegisterOtpResponse> register(@Valid @RequestBody RegisterRequest registerRequest) {
+    public ResponseEntity<RegisterOtpResponse> register(
+            @Valid @RequestBody @NonNull RegisterRequest registerRequest) {
         RegisterOtpResponse response = authService.register(registerRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/register/verify")
-    public ResponseEntity<LoginResponse> verifyRegisterOtp(@Valid @RequestBody RegisterOtpVerifyRequest request) {
+    public ResponseEntity<LoginResponse> verifyRegisterOtp(
+            @Valid @RequestBody @NonNull RegisterOtpVerifyRequest request) {
         LoginResponse response = authService.verifyRegisterOtp(request);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/register/resend")
-    public ResponseEntity<RegisterOtpResponse> resendRegisterOtp(@Valid @RequestBody ResendRegisterOtpRequest request) {
+    public ResponseEntity<RegisterOtpResponse> resendRegisterOtp(
+            @Valid @RequestBody @NonNull ResendRegisterOtpRequest request) {
         RegisterOtpResponse response = authService.resendRegisterOtp(request);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Logout endpoint for stateless JWT authentication
-     * Note: Since we're using stateless JWT, the client should remove the token
-     * from storage
-     * This endpoint simply returns a success message
-     * lz toan ngu
-     */
     @PostMapping("/logout")
     public ResponseEntity<LogoutResponse> logout() {
         LogoutResponse response = LogoutResponse.builder()
@@ -83,6 +82,7 @@ public class AuthController {
         UserResponse response = UserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
+                .phone(user.getPhone())
                 .fullName(user.getFullName())
                 .role(user.getRole().name())
                 .status(user.getStatus().name())
@@ -99,19 +99,23 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        UserResponse response = authService.updateProfile(user.getId(), request);
+        UserResponse response = authService.updateProfile(getAuthenticatedUserId(user), requireValue(request, "request"));
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/change-password")
-    public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+    public ResponseEntity<LogoutResponse> changePassword(@Valid @RequestBody @NonNull ChangePasswordRequest request) {
         User user = getAuthenticatedUser();
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        authService.changePassword(user.getId(), request);
-        return ResponseEntity.ok().build();
+        authService.changePassword(getAuthenticatedUserId(user), request);
+        LogoutResponse response = LogoutResponse.builder()
+                .message("Password changed successfully")
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.ok(response);
     }
 
     private User getAuthenticatedUser() {
@@ -125,6 +129,16 @@ public class AuthController {
             return null;
         }
         return user;
+    }
+
+    @NonNull
+    private UUID getAuthenticatedUserId(@NonNull User user) {
+        return requireValue(user.getId(), "authenticatedUser.id");
+    }
+
+    @NonNull
+    private <T> T requireValue(T value, String fieldName) {
+        return Objects.requireNonNull(value, fieldName + " must not be null");
     }
 
 }
