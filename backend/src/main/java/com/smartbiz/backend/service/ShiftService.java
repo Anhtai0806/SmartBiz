@@ -7,16 +7,19 @@ import com.smartbiz.backend.exception.ResourceNotFoundException;
 import com.smartbiz.backend.exception.UnauthorizedException;
 import com.smartbiz.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ShiftService {
 
     private final StaffShiftRepository staffShiftRepository;
@@ -26,20 +29,20 @@ public class ShiftService {
     /**
      * Get shifts by store (BUSINESS_OWNER)
      */
-    public List<ShiftResponse> getShiftsByStore(Long storeId) {
-        List<StaffShift> shifts = staffShiftRepository.findByStoreId(storeId);
+    public List<ShiftResponse> getShiftsByStore(@NonNull Long storeId) {
+        List<StaffShift> shifts = staffShiftRepository.findByStoreId(requireValue(storeId, "storeId"));
         return shifts.stream()
-                .map(this::convertToResponse)
+                .map(shift -> convertToResponse(requireValue(shift, "shift")))
                 .collect(Collectors.toList());
     }
 
     /**
      * Get shifts for current user
      */
-    public List<ShiftResponse> getMyShifts(UUID userId) {
-        List<StaffShift> shifts = staffShiftRepository.findByUserId(userId);
+    public List<ShiftResponse> getMyShifts(@NonNull UUID userId) {
+        List<StaffShift> shifts = staffShiftRepository.findByUserId(requireValue(userId, "userId"));
         return shifts.stream()
-                .map(this::convertToResponse)
+                .map(shift -> convertToResponse(requireValue(shift, "shift")))
                 .collect(Collectors.toList());
     }
 
@@ -47,11 +50,12 @@ public class ShiftService {
      * Create a new shift (BUSINESS_OWNER only)
      */
     @Transactional
-    public ShiftResponse createShift(UUID ownerId, Long storeId, ShiftRequest request) {
-        User user = userRepository.findById(request.getUserId())
+    public ShiftResponse createShift(@NonNull UUID ownerId, @NonNull Long storeId, @NonNull ShiftRequest request) {
+        UUID userId = requireValue(request.getUserId(), "userId");
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getUserId()));
 
-        Store store = storeRepository.findById(storeId)
+        Store store = storeRepository.findById(requireValue(storeId, "storeId"))
                 .orElseThrow(() -> new ResourceNotFoundException("Store not found with id: " + storeId));
 
         // Verify ownership
@@ -72,24 +76,25 @@ public class ShiftService {
                     "Staff member '" + user.getFullName() + "' is not assigned to store '" + store.getName() + "'");
         }
 
-        StaffShift shift = StaffShift.builder()
+        StaffShift shift = requireValue(StaffShift.builder()
                 .user(user)
                 .store(store)
                 .shiftDate(request.getShiftDate())
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
-                .build();
+                .build(), "shift");
 
-        StaffShift saved = staffShiftRepository.save(shift);
-        return convertToResponse(saved);
+        StaffShift saved = staffShiftRepository.save(requireValue(shift, "shift"));
+        return convertToResponse(requireValue(saved, "savedShift"));
     }
 
     /**
      * Update a shift
      */
     @Transactional
-    public ShiftResponse updateShift(UUID ownerId, Long storeId, Long shiftId, ShiftRequest request) {
-        StaffShift shift = staffShiftRepository.findById(shiftId)
+    public ShiftResponse updateShift(@NonNull UUID ownerId, @NonNull Long storeId, @NonNull Long shiftId,
+            @NonNull ShiftRequest request) {
+        StaffShift shift = staffShiftRepository.findById(requireValue(shiftId, "shiftId"))
                 .orElseThrow(() -> new ResourceNotFoundException("Shift not found with id: " + shiftId));
 
         // Verify ownership
@@ -98,7 +103,7 @@ public class ShiftService {
         }
 
         // Verify shift belongs to the specified store
-        if (!shift.getStore().getId().equals(storeId)) {
+        if (!shift.getStore().getId().equals(requireValue(storeId, "storeId"))) {
             throw new IllegalArgumentException("Shift does not belong to the specified store");
         }
 
@@ -106,20 +111,20 @@ public class ShiftService {
         shift.setStartTime(request.getStartTime());
         shift.setEndTime(request.getEndTime());
 
-        StaffShift updated = staffShiftRepository.save(shift);
-        return convertToResponse(updated);
+        StaffShift updated = staffShiftRepository.save(requireValue(shift, "shift"));
+        return convertToResponse(requireValue(updated, "updatedShift"));
     }
 
     /**
      * Get shifts by store and date range for calendar view
      * Accessible by Owner, Cashier, and Staff
      */
-    public List<ShiftResponse> getShiftsByStoreAndDateRange(UUID requesterId, Long storeId,
+    public List<ShiftResponse> getShiftsByStoreAndDateRange(@NonNull UUID requesterId, @NonNull Long storeId,
             LocalDate startDate, LocalDate endDate) {
-        Store store = storeRepository.findById(storeId)
+        Store store = storeRepository.findById(requireValue(storeId, "storeId"))
                 .orElseThrow(() -> new ResourceNotFoundException("Store not found with id: " + storeId));
 
-        User requester = userRepository.findById(requesterId)
+        User requester = userRepository.findById(requireValue(requesterId, "requesterId"))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         boolean isAllowed = false;
@@ -145,7 +150,7 @@ public class ShiftService {
 
         List<StaffShift> shifts = staffShiftRepository.findByStoreIdAndShiftDateBetween(storeId, startDate, endDate);
         return shifts.stream()
-                .map(this::convertToResponse)
+                .map(shift -> convertToResponse(requireValue(shift, "shift")))
                 .collect(Collectors.toList());
     }
 
@@ -153,8 +158,8 @@ public class ShiftService {
      * Delete a shift
      */
     @Transactional
-    public void deleteShift(UUID ownerId, Long shiftId) {
-        StaffShift shift = staffShiftRepository.findById(shiftId)
+    public void deleteShift(@NonNull UUID ownerId, @NonNull Long shiftId) {
+        StaffShift shift = staffShiftRepository.findById(requireValue(shiftId, "shiftId"))
                 .orElseThrow(() -> new ResourceNotFoundException("Shift not found with id: " + shiftId));
 
         // Verify ownership
@@ -162,10 +167,10 @@ public class ShiftService {
             throw new UnauthorizedException("You don't have permission to delete this shift");
         }
 
-        staffShiftRepository.delete(shift);
+        staffShiftRepository.delete(requireValue(shift, "shift"));
     }
 
-    private ShiftResponse convertToResponse(StaffShift shift) {
+    private ShiftResponse convertToResponse(@NonNull StaffShift shift) {
         return ShiftResponse.builder()
                 .id(shift.getId())
                 .userId(shift.getUser().getId())
@@ -177,5 +182,10 @@ public class ShiftService {
                 .startTime(shift.getStartTime())
                 .endTime(shift.getEndTime())
                 .build();
+    }
+
+    @NonNull
+    private <T> T requireValue(T value, String fieldName) {
+        return Objects.requireNonNull(value, fieldName + " must not be null");
     }
 }

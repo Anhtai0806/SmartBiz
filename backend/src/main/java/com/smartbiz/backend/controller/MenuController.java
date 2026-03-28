@@ -7,12 +7,15 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Menu Management endpoints
@@ -30,7 +33,7 @@ public class MenuController {
      * Get all categories for a store
      */
     @GetMapping("/categories/store/{storeId}")
-    public ResponseEntity<List<MenuCategoryResponse>> getCategoriesByStore(@PathVariable Long storeId) {
+    public ResponseEntity<List<MenuCategoryResponse>> getCategoriesByStore(@PathVariable @NonNull Long storeId) {
         List<MenuCategoryResponse> categories = menuService.getCategoriesByStore(storeId);
         return ResponseEntity.ok(categories);
     }
@@ -40,9 +43,10 @@ public class MenuController {
      */
     @PostMapping("/categories")
     @PreAuthorize("hasRole('BUSINESS_OWNER')")
-    public ResponseEntity<MenuCategoryResponse> createCategory(@Valid @RequestBody MenuCategoryRequest request) {
+    public ResponseEntity<MenuCategoryResponse> createCategory(
+            @Valid @RequestBody @NonNull MenuCategoryRequest request) {
         User currentUser = getCurrentUser();
-        MenuCategoryResponse category = menuService.createCategory(currentUser.getId(), request);
+        MenuCategoryResponse category = menuService.createCategory(getCurrentUserId(currentUser), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(category);
     }
 
@@ -52,10 +56,10 @@ public class MenuController {
     @PutMapping("/categories/{id}")
     @PreAuthorize("hasRole('BUSINESS_OWNER')")
     public ResponseEntity<MenuCategoryResponse> updateCategory(
-            @PathVariable Long id,
-            @Valid @RequestBody MenuCategoryRequest request) {
+            @PathVariable @NonNull Long id,
+            @Valid @RequestBody @NonNull MenuCategoryRequest request) {
         User currentUser = getCurrentUser();
-        MenuCategoryResponse category = menuService.updateCategory(currentUser.getId(), id, request);
+        MenuCategoryResponse category = menuService.updateCategory(getCurrentUserId(currentUser), id, request);
         return ResponseEntity.ok(category);
     }
 
@@ -64,9 +68,9 @@ public class MenuController {
      */
     @DeleteMapping("/categories/{id}")
     @PreAuthorize("hasRole('BUSINESS_OWNER')")
-    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteCategory(@PathVariable @NonNull Long id) {
         User currentUser = getCurrentUser();
-        menuService.deleteCategory(currentUser.getId(), id);
+        menuService.deleteCategory(getCurrentUserId(currentUser), id);
         return ResponseEntity.noContent().build();
     }
 
@@ -74,7 +78,7 @@ public class MenuController {
      * Get all menu items for a category
      */
     @GetMapping("/items/category/{categoryId}")
-    public ResponseEntity<List<MenuItemResponse>> getItemsByCategory(@PathVariable Long categoryId) {
+    public ResponseEntity<List<MenuItemResponse>> getItemsByCategory(@PathVariable @NonNull Long categoryId) {
         List<MenuItemResponse> items = menuService.getItemsByCategory(categoryId);
         return ResponseEntity.ok(items);
     }
@@ -83,7 +87,7 @@ public class MenuController {
      * Get all menu items for a store
      */
     @GetMapping("/items/store/{storeId}")
-    public ResponseEntity<List<MenuItemResponse>> getItemsByStore(@PathVariable Long storeId) {
+    public ResponseEntity<List<MenuItemResponse>> getItemsByStore(@PathVariable @NonNull Long storeId) {
         List<MenuItemResponse> items = menuService.getItemsByStore(storeId);
         return ResponseEntity.ok(items);
     }
@@ -93,9 +97,9 @@ public class MenuController {
      */
     @PostMapping("/items")
     @PreAuthorize("hasRole('BUSINESS_OWNER')")
-    public ResponseEntity<MenuItemResponse> createItem(@Valid @RequestBody MenuItemRequest request) {
+    public ResponseEntity<MenuItemResponse> createItem(@Valid @RequestBody @NonNull MenuItemRequest request) {
         User currentUser = getCurrentUser();
-        MenuItemResponse item = menuService.createItem(currentUser.getId(), request);
+        MenuItemResponse item = menuService.createItem(getCurrentUserId(currentUser), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(item);
     }
 
@@ -105,10 +109,10 @@ public class MenuController {
     @PutMapping("/items/{id}")
     @PreAuthorize("hasRole('BUSINESS_OWNER')")
     public ResponseEntity<MenuItemResponse> updateItem(
-            @PathVariable Long id,
-            @Valid @RequestBody MenuItemRequest request) {
+            @PathVariable @NonNull Long id,
+            @Valid @RequestBody @NonNull MenuItemRequest request) {
         User currentUser = getCurrentUser();
-        MenuItemResponse item = menuService.updateItem(currentUser.getId(), id, request);
+        MenuItemResponse item = menuService.updateItem(getCurrentUserId(currentUser), id, request);
         return ResponseEntity.ok(item);
     }
 
@@ -117,17 +121,27 @@ public class MenuController {
      */
     @DeleteMapping("/items/{id}")
     @PreAuthorize("hasRole('BUSINESS_OWNER')")
-    public ResponseEntity<Void> deleteItem(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteItem(@PathVariable @NonNull Long id) {
         User currentUser = getCurrentUser();
-        menuService.deleteItem(currentUser.getId(), id);
+        menuService.deleteItem(getCurrentUserId(currentUser), id);
         return ResponseEntity.noContent().build();
     }
 
     /**
      * Get current authenticated user
      */
+    @NonNull
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
+        Object principal = Objects.requireNonNull(authentication, "authentication must not be null").getPrincipal();
+        if (!(principal instanceof User user)) {
+            throw new IllegalStateException("Authenticated principal is not a User");
+        }
+        return Objects.requireNonNull(user, "authenticated user must not be null");
+    }
+
+    @NonNull
+    private UUID getCurrentUserId(@NonNull User user) {
+        return Objects.requireNonNull(user.getId(), "currentUser.id must not be null");
     }
 }

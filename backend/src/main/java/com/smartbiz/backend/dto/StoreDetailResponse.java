@@ -24,7 +24,7 @@ public class StoreDetailResponse {
     private java.time.LocalTime closingTime;
     private UUID ownerId;
     private String ownerName;
-    private String status;
+    private Boolean status;
     private List<UserResponse> staffMembers;
     private List<MenuItemResponse> menuItems;
     private List<TableResponse> tables;

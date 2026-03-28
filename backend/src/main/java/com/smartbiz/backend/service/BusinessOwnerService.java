@@ -15,16 +15,19 @@ import com.smartbiz.backend.repository.StoreRepository;
 import com.smartbiz.backend.repository.UserRepository;
 import com.smartbiz.backend.repository.WorkShiftRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class BusinessOwnerService {
 
     private final UserRepository userRepository;
@@ -43,7 +46,7 @@ public class BusinessOwnerService {
      * @return Created store response
      */
     @Transactional
-    public StoreResponse createStore(UUID ownerId, CreateStoreRequest request) {
+    public StoreResponse createStore(@NonNull UUID ownerId, @NonNull CreateStoreRequest request) {
         // Find owner
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Owner not found"));
@@ -54,7 +57,7 @@ public class BusinessOwnerService {
         }
 
         // Create store
-        Store store = Store.builder()
+        Store store = requireValue(Store.builder()
                 .owner(owner)
                 .name(request.getName())
                 .address(request.getAddress())
@@ -62,11 +65,11 @@ public class BusinessOwnerService {
                 .taxRate(request.getTaxRate())
                 .openingTime(request.getOpeningTime())
                 .closingTime(request.getClosingTime())
-                .build();
+                .build(), "store");
 
-        Store savedStore = storeRepository.save(store);
+        Store savedStore = storeRepository.save(requireValue(store, "store"));
 
-        return convertToStoreResponse(savedStore);
+        return convertToStoreResponse(requireValue(savedStore, "savedStore"));
     }
 
     /**
@@ -78,7 +81,7 @@ public class BusinessOwnerService {
      * @return Updated store response
      */
     @Transactional
-    public StoreResponse updateStore(UUID ownerId, Long storeId, UpdateStoreRequest request) {
+    public StoreResponse updateStore(@NonNull UUID ownerId, @NonNull Long storeId, @NonNull UpdateStoreRequest request) {
         // Find store
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + storeId));
@@ -98,17 +101,11 @@ public class BusinessOwnerService {
 
         // Update status if provided
         if (request.getStatus() != null) {
-            Status newStatus;
-            try {
-                newStatus = Status.valueOf(request.getStatus().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                throw new InvalidRoleException("Invalid status. Must be ACTIVE or INACTIVE");
-            }
-            store.setStatus(newStatus);
+            store.setStatus(request.getStatus());
         }
 
-        Store updatedStore = storeRepository.save(store);
-        return convertToStoreResponse(updatedStore);
+        Store updatedStore = storeRepository.save(requireValue(store, "store"));
+        return convertToStoreResponse(requireValue(updatedStore, "updatedStore"));
     }
 
     /**
@@ -120,7 +117,7 @@ public class BusinessOwnerService {
      * @return Created user response
      */
     @Transactional
-    public UserResponse createStaff(UUID ownerId, CreateStaffRequest request) {
+    public UserResponse createStaff(@NonNull UUID ownerId, @NonNull CreateStaffRequest request) {
         // Verify owner exists and has correct role
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Owner not found"));
@@ -148,7 +145,7 @@ public class BusinessOwnerService {
         }
 
         // Create staff user
-        User staff = User.builder()
+        User staff = requireValue(User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
@@ -156,11 +153,11 @@ public class BusinessOwnerService {
                 .status(Status.ACTIVE)
                 .salaryType(request.getSalaryType())
                 .salaryAmount(request.getSalaryAmount())
-                .build();
+                .build(), "staff");
 
-        User savedStaff = userRepository.save(staff);
+        User savedStaff = userRepository.save(requireValue(staff, "staff"));
 
-        return convertToUserResponse(savedStaff);
+        return convertToUserResponse(requireValue(savedStaff, "savedStaff"));
     }
 
     /**
@@ -172,22 +169,24 @@ public class BusinessOwnerService {
      * @return Updated store response
      */
     @Transactional
-    public StoreResponse assignStaffToStore(UUID ownerId, AssignStaffRequest request) {
+    public StoreResponse assignStaffToStore(@NonNull UUID ownerId, @NonNull AssignStaffRequest request) {
         // Verify owner exists
         userRepository.findById(ownerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Owner not found"));
 
         // Verify store exists and belongs to owner
-        Store store = storeRepository.findById(request.getStoreId())
-                .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + request.getStoreId()));
+        Long storeId = requireValue(request.getStoreId(), "storeId");
+        Store store = storeRepository.findById(requireValue(storeId, "storeId"))
+                .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + storeId));
 
         if (!store.getOwner().getId().equals(ownerId)) {
             throw new UnauthorizedException("You can only assign staff to your own stores");
         }
 
         // Verify staff user exists
-        User staff = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Staff not found with ID: " + request.getUserId()));
+        UUID userId = requireValue(request.getUserId(), "userId");
+        User staff = userRepository.findById(requireValue(userId, "userId"))
+                .orElseThrow(() -> new ResourceNotFoundException("Staff not found with ID: " + userId));
 
         // Validate staff role
         if (staff.getRole() != Role.STAFF && staff.getRole() != Role.CASHIER && staff.getRole() != Role.KITCHEN) {
@@ -197,10 +196,10 @@ public class BusinessOwnerService {
         // Add staff to store if not already assigned
         if (!store.getStaffMembers().contains(staff)) {
             store.getStaffMembers().add(staff);
-            storeRepository.save(store);
+            storeRepository.save(requireValue(store, "store"));
         }
 
-        return convertToStoreResponse(store);
+        return convertToStoreResponse(requireValue(store, "store"));
     }
 
     /**
@@ -213,7 +212,8 @@ public class BusinessOwnerService {
      * @return Updated user response
      */
     @Transactional
-    public UserResponse updateStaffStatus(UUID ownerId, UUID staffId, UpdateUserStatusRequest request) {
+    public UserResponse updateStaffStatus(@NonNull UUID ownerId, @NonNull UUID staffId,
+            @NonNull UpdateUserStatusRequest request) {
         // Verify owner exists
         userRepository.findById(ownerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Owner not found"));
@@ -248,7 +248,7 @@ public class BusinessOwnerService {
         staff.setStatus(newStatus);
         User updatedStaff = userRepository.save(staff);
 
-        return convertToUserResponse(updatedStaff);
+        return convertToUserResponse(requireValue(updatedStaff, "updatedStaff"));
     }
 
     /**
@@ -261,7 +261,7 @@ public class BusinessOwnerService {
      * @return Updated user response
      */
     @Transactional
-    public UserResponse updateStaff(UUID ownerId, UUID staffId, UpdateStaffRequest request) {
+    public UserResponse updateStaff(@NonNull UUID ownerId, @NonNull UUID staffId, @NonNull UpdateStaffRequest request) {
         // Verify owner exists
         userRepository.findById(ownerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Owner not found"));
@@ -304,8 +304,8 @@ public class BusinessOwnerService {
         if (request.getSalaryAmount() != null)
             staff.setSalaryAmount(request.getSalaryAmount());
 
-        User updatedStaff = userRepository.save(staff);
-        return convertToUserResponse(updatedStaff);
+        User updatedStaff = userRepository.save(requireValue(staff, "staff"));
+        return convertToUserResponse(requireValue(updatedStaff, "updatedStaff"));
     }
 
     /**
@@ -314,7 +314,7 @@ public class BusinessOwnerService {
      * @param ownerId Owner's user ID
      * @return List of store responses
      */
-    public List<StoreResponse> getMyStores(UUID ownerId) {
+    public List<StoreResponse> getMyStores(@NonNull UUID ownerId) {
         List<Store> stores = storeRepository.findByOwnerId(ownerId);
         return stores.stream()
                 .map(this::convertToStoreResponse)
@@ -327,7 +327,7 @@ public class BusinessOwnerService {
      * @param ownerId Owner's user ID
      * @return Dashboard stats
      */
-    public DashboardStatsResponse getDashboardStats(UUID ownerId) {
+    public DashboardStatsResponse getDashboardStats(@NonNull UUID ownerId) {
         List<Store> stores = storeRepository.findByOwnerId(ownerId);
 
         long totalStores = stores.size();
@@ -353,7 +353,7 @@ public class BusinessOwnerService {
      * @param storeId Store ID
      * @return Store detail response
      */
-    public StoreDetailResponse getStoreDetails(UUID ownerId, Long storeId) {
+    public StoreDetailResponse getStoreDetails(@NonNull UUID ownerId, @NonNull Long storeId) {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + storeId));
 
@@ -364,13 +364,13 @@ public class BusinessOwnerService {
 
         // Convert staff members
         List<UserResponse> staffResponses = store.getStaffMembers().stream()
-                .map(this::convertToUserResponse)
+                .map(staff -> convertToUserResponse(requireValue(staff, "staff")))
                 .collect(Collectors.toList());
 
         // Convert menu items
         List<MenuItemResponse> menuItemResponses = store.getMenuCategories().stream()
                 .flatMap(category -> category.getMenuItems().stream()
-                        .map(item -> convertToMenuItemResponse(item, category.getName())))
+                        .map(item -> convertToMenuItemResponse(requireValue(item, "menuItem"), category.getName())))
                 .collect(Collectors.toList());
 
         // Convert tables
@@ -388,7 +388,7 @@ public class BusinessOwnerService {
                 .closingTime(store.getClosingTime())
                 .ownerId(store.getOwner().getId())
                 .ownerName(store.getOwner().getFullName())
-                .status(store.getStatus() != null ? store.getStatus().name() : "ACTIVE")
+                .status(Boolean.TRUE.equals(store.getStatus()))
                 .staffMembers(staffResponses)
                 .menuItems(menuItemResponses)
                 .tables(tableResponses)
@@ -403,7 +403,7 @@ public class BusinessOwnerService {
      * @param storeId Store ID
      * @return List of staff members
      */
-    public List<UserResponse> getStoreStaff(UUID ownerId, Long storeId) {
+    public List<UserResponse> getStoreStaff(@NonNull UUID ownerId, @NonNull Long storeId) {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + storeId));
 
@@ -412,7 +412,7 @@ public class BusinessOwnerService {
         }
 
         return store.getStaffMembers().stream()
-                .map(this::convertToUserResponse)
+                .map(staff -> convertToUserResponse(requireValue(staff, "staff")))
                 .collect(Collectors.toList());
     }
 
@@ -424,7 +424,7 @@ public class BusinessOwnerService {
      * @param staffId Staff user ID
      */
     @Transactional
-    public void removeStaffFromStore(UUID ownerId, Long storeId, UUID staffId) {
+    public void removeStaffFromStore(@NonNull UUID ownerId, @NonNull Long storeId, @NonNull UUID staffId) {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + storeId));
 
@@ -448,7 +448,7 @@ public class BusinessOwnerService {
      * @return Created menu item response
      */
     @Transactional
-    public MenuItemResponse createMenuItem(UUID ownerId, Long storeId, MenuItemRequest request) {
+    public MenuItemResponse createMenuItem(@NonNull UUID ownerId, @NonNull Long storeId, @NonNull MenuItemRequest request) {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + storeId));
 
@@ -456,24 +456,24 @@ public class BusinessOwnerService {
             throw new UnauthorizedException("You can only add menu items to your own stores");
         }
 
-        MenuCategory category = menuCategoryRepository.findById(request.getCategoryId())
-                .orElseThrow(
-                        () -> new ResourceNotFoundException("Category not found with ID: " + request.getCategoryId()));
+        Long categoryId = requireValue(request.getCategoryId(), "categoryId");
+        MenuCategory category = menuCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
 
         // Verify category belongs to this store
         if (!category.getStore().getId().equals(storeId)) {
             throw new InvalidRoleException("Category does not belong to this store");
         }
 
-        MenuItem menuItem = MenuItem.builder()
+        MenuItem menuItem = requireValue(MenuItem.builder()
                 .category(category)
                 .name(request.getName())
                 .price(request.getPrice())
                 .status(request.getStatus())
-                .build();
+                .build(), "menuItem");
 
-        MenuItem savedItem = menuItemRepository.save(menuItem);
-        return convertToMenuItemResponse(savedItem, category.getName());
+        MenuItem savedItem = menuItemRepository.save(requireValue(menuItem, "menuItem"));
+        return convertToMenuItemResponse(requireValue(savedItem, "savedItem"), category.getName());
     }
 
     /**
@@ -485,7 +485,7 @@ public class BusinessOwnerService {
      * @return Updated menu item response
      */
     @Transactional
-    public MenuItemResponse updateMenuItem(UUID ownerId, Long itemId, MenuItemRequest request) {
+    public MenuItemResponse updateMenuItem(@NonNull UUID ownerId, @NonNull Long itemId, @NonNull MenuItemRequest request) {
         MenuItem menuItem = menuItemRepository.findById(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found with ID: " + itemId));
 
@@ -498,8 +498,8 @@ public class BusinessOwnerService {
         menuItem.setPrice(request.getPrice());
         menuItem.setStatus(request.getStatus());
 
-        MenuItem updatedItem = menuItemRepository.save(menuItem);
-        return convertToMenuItemResponse(updatedItem, menuItem.getCategory().getName());
+        MenuItem updatedItem = menuItemRepository.save(requireValue(menuItem, "menuItem"));
+        return convertToMenuItemResponse(requireValue(updatedItem, "updatedItem"), menuItem.getCategory().getName());
     }
 
     /**
@@ -509,7 +509,7 @@ public class BusinessOwnerService {
      * @param itemId  Menu item ID
      */
     @Transactional
-    public void deleteMenuItem(UUID ownerId, Long itemId) {
+    public void deleteMenuItem(@NonNull UUID ownerId, @NonNull Long itemId) {
         MenuItem menuItem = menuItemRepository.findById(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Menu item not found with ID: " + itemId));
 
@@ -517,7 +517,7 @@ public class BusinessOwnerService {
             throw new UnauthorizedException("You can only delete menu items from your own stores");
         }
 
-        menuItemRepository.delete(menuItem);
+        menuItemRepository.delete(requireValue(menuItem, "menuItem"));
     }
 
     /**
@@ -526,11 +526,11 @@ public class BusinessOwnerService {
      * @param ownerId Owner's user ID
      * @return List of all categories across owner's stores
      */
-    public List<MenuCategoryResponse> getAllCategories(UUID ownerId) {
+    public List<MenuCategoryResponse> getAllCategories(@NonNull UUID ownerId) {
         List<Store> stores = storeRepository.findByOwnerId(ownerId);
         return stores.stream()
                 .flatMap(store -> menuCategoryRepository.findByStoreId(store.getId()).stream())
-                .map(this::convertToCategoryResponse)
+                .map(category -> convertToCategoryResponse(requireValue(category, "category")))
                 .collect(Collectors.toList());
     }
 
@@ -542,22 +542,23 @@ public class BusinessOwnerService {
      * @return Created category response
      */
     @Transactional
-    public MenuCategoryResponse createCategory(UUID ownerId, MenuCategoryRequest request) {
-        Store store = storeRepository.findById(request.getStoreId())
-                .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + request.getStoreId()));
+    public MenuCategoryResponse createCategory(@NonNull UUID ownerId, @NonNull MenuCategoryRequest request) {
+        Long storeId = requireValue(request.getStoreId(), "storeId");
+        Store store = storeRepository.findById(requireValue(storeId, "storeId"))
+                .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + storeId));
 
         // Verify ownership
         if (!store.getOwner().getId().equals(ownerId)) {
             throw new UnauthorizedException("You can only create categories for your own stores");
         }
 
-        MenuCategory category = MenuCategory.builder()
+        MenuCategory category = requireValue(MenuCategory.builder()
                 .store(store)
                 .name(request.getName())
-                .build();
+                .build(), "category");
 
-        MenuCategory savedCategory = menuCategoryRepository.save(category);
-        return convertToCategoryResponse(savedCategory);
+        MenuCategory savedCategory = menuCategoryRepository.save(requireValue(category, "category"));
+        return convertToCategoryResponse(requireValue(savedCategory, "savedCategory"));
     }
 
     /**
@@ -569,7 +570,8 @@ public class BusinessOwnerService {
      * @return Updated category response
      */
     @Transactional
-    public MenuCategoryResponse updateCategory(UUID ownerId, Long categoryId, MenuCategoryRequest request) {
+    public MenuCategoryResponse updateCategory(@NonNull UUID ownerId, @NonNull Long categoryId,
+            @NonNull MenuCategoryRequest request) {
         MenuCategory category = menuCategoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
 
@@ -579,8 +581,8 @@ public class BusinessOwnerService {
         }
 
         category.setName(request.getName());
-        MenuCategory updatedCategory = menuCategoryRepository.save(category);
-        return convertToCategoryResponse(updatedCategory);
+        MenuCategory updatedCategory = menuCategoryRepository.save(requireValue(category, "category"));
+        return convertToCategoryResponse(requireValue(updatedCategory, "updatedCategory"));
     }
 
     /**
@@ -591,7 +593,7 @@ public class BusinessOwnerService {
      * @param categoryId Category ID
      */
     @Transactional
-    public void deleteCategory(UUID ownerId, Long categoryId) {
+    public void deleteCategory(@NonNull UUID ownerId, @NonNull Long categoryId) {
         MenuCategory category = menuCategoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
 
@@ -600,7 +602,7 @@ public class BusinessOwnerService {
             throw new UnauthorizedException("You can only delete categories from your own stores");
         }
 
-        menuCategoryRepository.delete(category);
+        menuCategoryRepository.delete(requireValue(category, "category"));
     }
 
     /**
@@ -610,7 +612,7 @@ public class BusinessOwnerService {
      * @param storeId Store ID
      * @return List of categories for the store
      */
-    public List<MenuCategoryResponse> getStoreCategories(UUID ownerId, Long storeId) {
+    public List<MenuCategoryResponse> getStoreCategories(@NonNull UUID ownerId, @NonNull Long storeId) {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + storeId));
 
@@ -621,14 +623,14 @@ public class BusinessOwnerService {
 
         List<MenuCategory> categories = menuCategoryRepository.findByStoreId(storeId);
         return categories.stream()
-                .map(this::convertToCategoryResponse)
+                .map(category -> convertToCategoryResponse(requireValue(category, "category")))
                 .collect(Collectors.toList());
     }
 
     /**
      * Convert Store entity to StoreResponse DTO
      */
-    private StoreResponse convertToStoreResponse(Store store) {
+    private StoreResponse convertToStoreResponse(@NonNull Store store) {
         return StoreResponse.builder()
                 .id(store.getId())
                 .name(store.getName())
@@ -639,7 +641,7 @@ public class BusinessOwnerService {
                 .closingTime(store.getClosingTime())
                 .ownerId(store.getOwner().getId())
                 .ownerName(store.getOwner().getFullName())
-                .status(store.getStatus() != null ? store.getStatus().name() : "ACTIVE")
+                .status(Boolean.TRUE.equals(store.getStatus()))
                 .createdAt(store.getCreatedAt())
                 .build();
     }
@@ -647,7 +649,7 @@ public class BusinessOwnerService {
     /**
      * Convert User entity to UserResponse DTO
      */
-    private UserResponse convertToUserResponse(User user) {
+    private UserResponse convertToUserResponse(@NonNull User user) {
         return UserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
@@ -663,7 +665,7 @@ public class BusinessOwnerService {
     /**
      * Convert MenuItem entity to MenuItemResponse DTO
      */
-    private MenuItemResponse convertToMenuItemResponse(MenuItem item, String categoryName) {
+    private MenuItemResponse convertToMenuItemResponse(@NonNull MenuItem item, String categoryName) {
         return MenuItemResponse.builder()
                 .id(item.getId())
                 .categoryId(item.getCategory().getId())
@@ -677,13 +679,13 @@ public class BusinessOwnerService {
     /**
      * Convert MenuCategory entity to MenuCategoryResponse DTO
      */
-    private MenuCategoryResponse convertToCategoryResponse(MenuCategory category) {
+    private MenuCategoryResponse convertToCategoryResponse(@NonNull MenuCategory category) {
         return MenuCategoryResponse.builder()
                 .id(category.getId())
                 .storeId(category.getStore().getId())
                 .storeName(category.getStore().getName())
                 .name(category.getName())
-                .itemCount(menuItemRepository.countByCategoryId(category.getId()))
+                .itemCount(menuItemRepository.countByCategoryId(requireValue(category.getId(), "categoryId")))
                 .build();
     }
 
@@ -694,7 +696,7 @@ public class BusinessOwnerService {
      * @param storeId Store ID
      * @return List of shift templates
      */
-    public List<WorkShiftResponse> getShiftTemplates(UUID ownerId, Long storeId) {
+    public List<WorkShiftResponse> getShiftTemplates(@NonNull UUID ownerId, @NonNull Long storeId) {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + storeId));
 
@@ -717,24 +719,25 @@ public class BusinessOwnerService {
      * @return Created shift template
      */
     @Transactional
-    public WorkShiftResponse createShiftTemplate(UUID ownerId, WorkShiftRequest request) {
-        Store store = storeRepository.findById(request.getStoreId())
-                .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + request.getStoreId()));
+    public WorkShiftResponse createShiftTemplate(@NonNull UUID ownerId, @NonNull WorkShiftRequest request) {
+        Long storeId = requireValue(request.getStoreId(), "storeId");
+        Store store = storeRepository.findById(requireValue(storeId, "storeId"))
+                .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + storeId));
 
         // Verify ownership
         if (!store.getOwner().getId().equals(ownerId)) {
             throw new UnauthorizedException("You can only create shift templates for your own stores");
         }
 
-        WorkShift workShift = WorkShift.builder()
+        WorkShift workShift = requireValue(WorkShift.builder()
                 .store(store)
                 .name(request.getName())
                 .startTime(java.time.LocalTime.parse(request.getStartTime()))
                 .endTime(java.time.LocalTime.parse(request.getEndTime()))
-                .build();
+                .build(), "workShift");
 
-        WorkShift savedShift = workShiftRepository.save(workShift);
-        return convertToWorkShiftResponse(savedShift);
+        WorkShift savedShift = workShiftRepository.save(requireValue(workShift, "workShift"));
+        return convertToWorkShiftResponse(requireValue(savedShift, "savedShift"));
     }
 
     /**
@@ -746,7 +749,8 @@ public class BusinessOwnerService {
      * @return Updated shift template
      */
     @Transactional
-    public WorkShiftResponse updateShiftTemplate(UUID ownerId, Long shiftId, WorkShiftRequest request) {
+    public WorkShiftResponse updateShiftTemplate(@NonNull UUID ownerId, @NonNull Long shiftId,
+            @NonNull WorkShiftRequest request) {
         WorkShift workShift = workShiftRepository.findById(shiftId)
                 .orElseThrow(() -> new ResourceNotFoundException("Shift template not found with ID: " + shiftId));
 
@@ -759,8 +763,8 @@ public class BusinessOwnerService {
         workShift.setStartTime(java.time.LocalTime.parse(request.getStartTime()));
         workShift.setEndTime(java.time.LocalTime.parse(request.getEndTime()));
 
-        WorkShift updatedShift = workShiftRepository.save(workShift);
-        return convertToWorkShiftResponse(updatedShift);
+        WorkShift updatedShift = workShiftRepository.save(requireValue(workShift, "workShift"));
+        return convertToWorkShiftResponse(requireValue(updatedShift, "updatedShift"));
     }
 
     /**
@@ -770,7 +774,7 @@ public class BusinessOwnerService {
      * @param shiftId Shift template ID
      */
     @Transactional
-    public void deleteShiftTemplate(UUID ownerId, Long shiftId) {
+    public void deleteShiftTemplate(@NonNull UUID ownerId, @NonNull Long shiftId) {
         WorkShift workShift = workShiftRepository.findById(shiftId)
                 .orElseThrow(() -> new ResourceNotFoundException("Shift template not found with ID: " + shiftId));
 
@@ -779,13 +783,13 @@ public class BusinessOwnerService {
             throw new UnauthorizedException("You can only delete shift templates from your own stores");
         }
 
-        workShiftRepository.delete(workShift);
+        workShiftRepository.delete(requireValue(workShift, "workShift"));
     }
 
     /**
      * Convert WorkShift entity to WorkShiftResponse DTO
      */
-    private WorkShiftResponse convertToWorkShiftResponse(WorkShift workShift) {
+    private WorkShiftResponse convertToWorkShiftResponse(@NonNull WorkShift workShift) {
         return WorkShiftResponse.builder()
                 .id(workShift.getId())
                 .storeId(workShift.getStore().getId())
@@ -799,7 +803,7 @@ public class BusinessOwnerService {
     /**
      * Convert Tables entity to TableResponse DTO
      */
-    private TableResponse convertToTableResponse(Tables table) {
+    private TableResponse convertToTableResponse(@NonNull Tables table) {
         return TableResponse.builder()
                 .id(table.getId())
                 .storeId(table.getStore().getId())
@@ -816,7 +820,7 @@ public class BusinessOwnerService {
      * @param userId Owner's user ID
      * @return QR payment code response or null if not found
      */
-    public QRPaymentResponse getQRPaymentCode(UUID userId) {
+    public QRPaymentResponse getQRPaymentCode(@NonNull UUID userId) {
         return qrPaymentCodeRepository.findByUserId(userId)
                 .map(this::convertToQRPaymentResponse)
                 .orElse(null);
@@ -831,7 +835,7 @@ public class BusinessOwnerService {
      * @return Created QR payment code response
      */
     @Transactional
-    public QRPaymentResponse createQRPaymentCode(UUID userId, QRPaymentRequest request) {
+    public QRPaymentResponse createQRPaymentCode(@NonNull UUID userId, @NonNull QRPaymentRequest request) {
         // Verify user exists and is a business owner
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -845,15 +849,15 @@ public class BusinessOwnerService {
             throw new InvalidRoleException("QR payment code already exists. Please update or delete the existing one.");
         }
 
-        QRPaymentCode qrCode = QRPaymentCode.builder()
+        QRPaymentCode qrCode = requireValue(QRPaymentCode.builder()
                 .user(user)
                 .imageData(request.getImageData())
                 .imageName(request.getImageName())
                 .imageType(request.getImageType())
-                .build();
+                .build(), "qrCode");
 
-        QRPaymentCode savedQRCode = qrPaymentCodeRepository.save(qrCode);
-        return convertToQRPaymentResponse(savedQRCode);
+        QRPaymentCode savedQRCode = qrPaymentCodeRepository.save(requireValue(qrCode, "qrCode"));
+        return convertToQRPaymentResponse(requireValue(savedQRCode, "savedQRCode"));
     }
 
     /**
@@ -864,7 +868,7 @@ public class BusinessOwnerService {
      * @return Updated QR payment code response
      */
     @Transactional
-    public QRPaymentResponse updateQRPaymentCode(UUID userId, QRPaymentRequest request) {
+    public QRPaymentResponse updateQRPaymentCode(@NonNull UUID userId, @NonNull QRPaymentRequest request) {
         QRPaymentCode qrCode = qrPaymentCodeRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("QR payment code not found"));
 
@@ -877,8 +881,8 @@ public class BusinessOwnerService {
         qrCode.setImageName(request.getImageName());
         qrCode.setImageType(request.getImageType());
 
-        QRPaymentCode updatedQRCode = qrPaymentCodeRepository.save(qrCode);
-        return convertToQRPaymentResponse(updatedQRCode);
+        QRPaymentCode updatedQRCode = qrPaymentCodeRepository.save(requireValue(qrCode, "qrCode"));
+        return convertToQRPaymentResponse(requireValue(updatedQRCode, "updatedQRCode"));
     }
 
     /**
@@ -887,7 +891,7 @@ public class BusinessOwnerService {
      * @param userId Owner's user ID
      */
     @Transactional
-    public void deleteQRPaymentCode(UUID userId) {
+    public void deleteQRPaymentCode(@NonNull UUID userId) {
         QRPaymentCode qrCode = qrPaymentCodeRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("QR payment code not found"));
 
@@ -896,13 +900,13 @@ public class BusinessOwnerService {
             throw new UnauthorizedException("You can only delete your own QR payment code");
         }
 
-        qrPaymentCodeRepository.delete(qrCode);
+        qrPaymentCodeRepository.delete(requireValue(qrCode, "qrCode"));
     }
 
     /**
      * Convert QRPaymentCode entity to QRPaymentResponse DTO
      */
-    private QRPaymentResponse convertToQRPaymentResponse(QRPaymentCode qrCode) {
+    private QRPaymentResponse convertToQRPaymentResponse(@NonNull QRPaymentCode qrCode) {
         return QRPaymentResponse.builder()
                 .id(qrCode.getId())
                 .imageData(qrCode.getImageData())
@@ -911,5 +915,10 @@ public class BusinessOwnerService {
                 .createdAt(qrCode.getCreatedAt())
                 .updatedAt(qrCode.getUpdatedAt())
                 .build();
+    }
+
+    @NonNull
+    private <T> T requireValue(T value, String fieldName) {
+        return Objects.requireNonNull(value, fieldName + " must not be null");
     }
 }

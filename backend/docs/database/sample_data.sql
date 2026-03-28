@@ -22,8 +22,8 @@ INSERT INTO `users` (`id`, `email`, `phone`, `password`, `full_name`, `role`, `s
 -- 2. Insert Store
 -- ==========================================
 INSERT INTO `stores` (`id`, `owner_id`, `name`, `address`, `status`, `created_at`, `opening_time`, `closing_time`, `tax_rate`, `phone`) VALUES
-(1, 'b1a2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', 'SmartBiz Restaurant Quận 1', '123 Nguyễn Huệ, Quận 1, TP.HCM', 'ACTIVE', NOW(), '08:00:00', '22:00:00', 8.00, '0281234567'),
-(2, 'b1a2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', 'SmartBiz Cafe Quận 3', '456 Lê Văn Sỹ, Quận 3, TP.HCM', 'ACTIVE', NOW(), '07:00:00', '23:00:00', 8.00, '0289876543');
+(1, 'b1a2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', 'SmartBiz Restaurant Quận 1', '123 Nguyễn Huệ, Quận 1, TP.HCM', TRUE, NOW(), '08:00:00', '22:00:00', 8.00, '0281234567'),
+(2, 'b1a2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', 'SmartBiz Cafe Quận 3', '456 Lê Văn Sỹ, Quận 3, TP.HCM', TRUE, NOW(), '07:00:00', '23:00:00', 8.00, '0289876543');
 
 -- ==========================================
 -- 3. Link Staff to Store (staff_store)

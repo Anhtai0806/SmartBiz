@@ -8,9 +8,11 @@ import com.smartbiz.backend.enums.TableStatus;
 import com.smartbiz.backend.repository.*;
 import com.smartbiz.backend.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -22,8 +24,9 @@ public class InvoiceService {
     private final OrderService orderService;
 
     @Transactional
-    public InvoiceResponse createInvoice(CreateInvoiceRequest request) {
-        Order order = orderRepository.findById(request.getOrderId())
+    public InvoiceResponse createInvoice(@NonNull CreateInvoiceRequest request) {
+        Long orderId = requireValue(request.getOrderId(), "orderId");
+        Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + request.getOrderId()));
 
         Tables table = order.getTable();
@@ -55,7 +58,7 @@ public class InvoiceService {
                 .paymentMethod(request.getPaymentMethod())
                 .build();
 
-        Invoice savedInvoice = invoiceRepository.save(invoice);
+        Invoice savedInvoice = invoiceRepository.save(requireValue(invoice, "invoice"));
 
         // Update Order Status
         order.setStatus(OrderStatus.DONE);
@@ -65,29 +68,34 @@ public class InvoiceService {
         table.setStatus(TableStatus.PAID);
         tableRepository.save(table);
 
-        return convertToInvoiceResponse(savedInvoice);
+        return convertToInvoiceResponse(requireValue(savedInvoice, "savedInvoice"));
     }
 
-    private InvoiceResponse convertToInvoiceResponse(Invoice invoice) {
+    private InvoiceResponse convertToInvoiceResponse(@NonNull Invoice invoice) {
         return InvoiceResponse.builder()
                 .id(invoice.getId())
                 .orderId(invoice.getOrder().getId())
                 .totalAmount(invoice.getTotalAmount())
                 .paymentMethod(invoice.getPaymentMethod())
                 .createdAt(invoice.getCreatedAt())
-                .order(orderService.convertToResponse(invoice.getOrder()))
+                .order(orderService.convertToResponse(requireValue(invoice.getOrder(), "order")))
                 .build();
     }
 
-    public InvoiceResponse getInvoiceByOrder(Long orderId) {
-        Invoice invoice = invoiceRepository.findByOrderId(orderId)
+    public InvoiceResponse getInvoiceByOrder(@NonNull Long orderId) {
+        Invoice invoice = invoiceRepository.findByOrderId(requireValue(orderId, "orderId"))
                 .orElseThrow(() -> new ResourceNotFoundException("Invoice not found for order id: " + orderId));
-        return convertToInvoiceResponse(invoice);
+        return convertToInvoiceResponse(requireValue(invoice, "invoice"));
     }
 
-    public java.util.List<InvoiceResponse> getInvoicesByStore(Long storeId) {
-        return invoiceRepository.findByStoreId(storeId).stream()
-                .map(this::convertToInvoiceResponse)
+    public java.util.List<InvoiceResponse> getInvoicesByStore(@NonNull Long storeId) {
+        return invoiceRepository.findByStoreId(requireValue(storeId, "storeId")).stream()
+                .map(invoice -> convertToInvoiceResponse(requireValue(invoice, "invoice")))
                 .collect(java.util.stream.Collectors.toList());
+    }
+
+    @NonNull
+    private <T> T requireValue(T value, String fieldName) {
+        return Objects.requireNonNull(value, fieldName + " must not be null");
     }
 }

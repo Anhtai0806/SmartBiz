@@ -19,6 +19,7 @@ import com.smartbiz.backend.repository.MenuItemRepository;
 import com.smartbiz.backend.repository.StoreRepository;
 import com.smartbiz.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,11 +27,13 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AdminService {
 
         private final UserRepository userRepository;
@@ -55,11 +58,11 @@ public class AdminService {
          * Only BUSINESS_OWNER accounts can be locked/unlocked
          * 
          * @param userId  User ID to update
-         * @param request Status update request
-         * @return Updated user response
+        * @param request Status update request
+        * @return Updated user response
          */
         @Transactional
-        public UserResponse updateUserStatus(UUID userId, UpdateUserStatusRequest request) {
+        public UserResponse updateUserStatus(@NonNull UUID userId, @NonNull UpdateUserStatusRequest request) {
                 // Find user
                 User user = userRepository.findById(userId)
                                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
@@ -102,11 +105,11 @@ public class AdminService {
          * @param storeId Store ID
          * @return Store response with details
          */
-        public StoreResponse getStoreById(Long storeId) {
+        public StoreResponse getStoreById(@NonNull Long storeId) {
                 Store store = storeRepository.findById(storeId)
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Store not found with ID: " + storeId));
-                return convertToStoreResponse(store);
+                return convertToStoreResponse(requireValue(store, "store"));
         }
 
         /**
@@ -153,7 +156,7 @@ public class AdminService {
          * @param userId User ID to delete
          */
         @Transactional
-        public void deleteUser(UUID userId) {
+        public void deleteUser(@NonNull UUID userId) {
                 User user = userRepository.findById(userId)
                                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
 
@@ -183,7 +186,7 @@ public class AdminService {
          * @param storeId Store ID
          * @return List of categories for the store
          */
-        public List<MenuCategoryResponse> getCategoriesByStoreId(Long storeId) {
+        public List<MenuCategoryResponse> getCategoriesByStoreId(@NonNull Long storeId) {
                 // Verify store exists
                 storeRepository.findById(storeId)
                                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -202,16 +205,17 @@ public class AdminService {
          * @return Created category response
          */
         @Transactional
-        public MenuCategoryResponse createCategory(MenuCategoryRequest request) {
+        public MenuCategoryResponse createCategory(@NonNull MenuCategoryRequest request) {
                 // Verify store exists
-                Store store = storeRepository.findById(request.getStoreId())
+                Long storeId = requireValue(request.getStoreId(), "storeId");
+                Store store = storeRepository.findById(storeId)
                                 .orElseThrow(() -> new ResourceNotFoundException(
-                                                "Store not found with ID: " + request.getStoreId()));
+                                                "Store not found with ID: " + storeId));
 
-                MenuCategory category = MenuCategory.builder()
+                MenuCategory category = requireValue(MenuCategory.builder()
                                 .store(store)
                                 .name(request.getName())
-                                .build();
+                                .build(), "category");
 
                 MenuCategory saved = menuCategoryRepository.save(category);
                 return convertToCategoryResponse(saved);
@@ -225,7 +229,7 @@ public class AdminService {
          * @return Updated category response
          */
         @Transactional
-        public MenuCategoryResponse updateCategory(Long categoryId, MenuCategoryRequest request) {
+        public MenuCategoryResponse updateCategory(@NonNull Long categoryId, @NonNull MenuCategoryRequest request) {
                 MenuCategory category = menuCategoryRepository.findById(categoryId)
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Category not found with ID: " + categoryId));
@@ -234,16 +238,17 @@ public class AdminService {
                 category.setName(request.getName());
 
                 // If store is being changed, verify new store exists
-                if (!category.getStore().getId().equals(request.getStoreId())) {
-                        Store newStore = storeRepository.findById(request.getStoreId())
+                Long storeId = requireValue(request.getStoreId(), "storeId");
+                if (!category.getStore().getId().equals(storeId)) {
+                        Store newStore = storeRepository.findById(storeId)
                                         .orElseThrow(
                                                         () -> new ResourceNotFoundException("Store not found with ID: "
-                                                                        + request.getStoreId()));
+                                                                        + storeId));
                         category.setStore(newStore);
                 }
 
                 MenuCategory updated = menuCategoryRepository.save(category);
-                return convertToCategoryResponse(updated);
+                return convertToCategoryResponse(requireValue(updated, "updatedCategory"));
         }
 
         /**
@@ -253,18 +258,18 @@ public class AdminService {
          * @param categoryId Category ID to delete
          */
         @Transactional
-        public void deleteCategory(Long categoryId) {
+        public void deleteCategory(@NonNull Long categoryId) {
                 MenuCategory category = menuCategoryRepository.findById(categoryId)
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Category not found with ID: " + categoryId));
 
-                menuCategoryRepository.delete(category);
+                menuCategoryRepository.delete(requireValue(category, "category"));
         }
 
         /**
          * Convert User entity to UserResponse DTO
          */
-        private UserResponse convertToUserResponse(User user) {
+        private UserResponse convertToUserResponse(@NonNull User user) {
                 return UserResponse.builder()
                                 .id(user.getId())
                                 .email(user.getEmail())
@@ -278,14 +283,19 @@ public class AdminService {
         /**
          * Convert Store entity to StoreResponse DTO
          */
-        private StoreResponse convertToStoreResponse(Store store) {
+        private StoreResponse convertToStoreResponse(@NonNull Store store) {
                 return StoreResponse.builder()
                                 .id(store.getId())
                                 .name(store.getName())
                                 .address(store.getAddress())
+                                .phone(store.getPhone())
+                                .taxRate(store.getTaxRate())
+                                .openingTime(store.getOpeningTime())
+                                .closingTime(store.getClosingTime())
                                 .ownerId(store.getOwner().getId())
                                 .ownerName(store.getOwner().getFullName())
                                 .ownerEmail(store.getOwner().getEmail())
+                                .status(Boolean.TRUE.equals(store.getStatus()))
                                 .staffCount(store.getStaffMembers() != null ? store.getStaffMembers().size() : 0)
                                 .tableCount(store.getTables() != null ? store.getTables().size() : 0)
                                 .createdAt(store.getCreatedAt())
@@ -295,13 +305,14 @@ public class AdminService {
         /**
          * Convert MenuCategory entity to MenuCategoryResponse DTO
          */
-        private MenuCategoryResponse convertToCategoryResponse(MenuCategory category) {
+        private MenuCategoryResponse convertToCategoryResponse(@NonNull MenuCategory category) {
+                Long categoryId = requireValue(category.getId(), "categoryId");
                 return MenuCategoryResponse.builder()
-                                .id(category.getId())
+                                .id(categoryId)
                                 .storeId(category.getStore().getId())
                                 .storeName(category.getStore().getName())
                                 .name(category.getName())
-                                .itemCount(menuItemRepository.countByCategoryId(category.getId()))
+                                .itemCount(menuItemRepository.countByCategoryId(categoryId))
                                 .build();
         }
 
@@ -348,7 +359,7 @@ public class AdminService {
          * @param ownerId Business owner user ID
          * @return List of stores owned by the business owner
          */
-        public List<StoreResponse> getStoresByOwnerId(UUID ownerId) {
+        public List<StoreResponse> getStoresByOwnerId(@NonNull UUID ownerId) {
                 // Verify user exists and is a business owner
                 User owner = userRepository.findById(ownerId)
                                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + ownerId));
@@ -362,5 +373,10 @@ public class AdminService {
                 return stores.stream()
                                 .map(this::convertToStoreResponse)
                                 .collect(Collectors.toList());
+        }
+
+        @NonNull
+        private <T> T requireValue(T value, String fieldName) {
+                return Objects.requireNonNull(value, fieldName + " must not be null");
         }
 }

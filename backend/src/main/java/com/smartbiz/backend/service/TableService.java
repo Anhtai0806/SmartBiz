@@ -7,12 +7,14 @@ import com.smartbiz.backend.exception.ResourceNotFoundException;
 import com.smartbiz.backend.exception.UnauthorizedException;
 import com.smartbiz.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -28,10 +30,10 @@ public class TableService {
     /**
      * Get all tables for a store
      */
-    public List<TableResponse> getTablesByStore(Long storeId) {
-        List<Tables> tables = tablesRepository.findByStoreId(storeId);
+    public List<TableResponse> getTablesByStore(@NonNull Long storeId) {
+        List<Tables> tables = tablesRepository.findByStoreId(requireValue(storeId, "storeId"));
         return tables.stream()
-                .map(this::convertToResponse)
+                .map(table -> convertToResponse(requireValue(table, "table")))
                 .collect(Collectors.toList());
     }
 
@@ -39,8 +41,9 @@ public class TableService {
      * Create a new table (BUSINESS_OWNER only)
      */
     @Transactional
-    public TableResponse createTable(UUID ownerId, TableRequest request) {
-        Store store = storeRepository.findById(request.getStoreId())
+    public TableResponse createTable(@NonNull UUID ownerId, @NonNull TableRequest request) {
+        Long storeId = requireValue(request.getStoreId(), "storeId");
+        Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Store not found with id: " + request.getStoreId()));
 
         // Verify ownership
@@ -48,22 +51,23 @@ public class TableService {
             throw new UnauthorizedException("You don't have permission to create tables for this store");
         }
 
-        Tables table = Tables.builder()
+        Tables table = requireValue(Tables.builder()
                 .store(store)
                 .name(request.getName())
                 .status(request.getStatus())
-                .build();
+                .build(), "table");
 
-        Tables saved = tablesRepository.save(table);
-        return convertToResponse(saved);
+        Tables saved = tablesRepository.save(requireValue(table, "table"));
+        return convertToResponse(requireValue(saved, "savedTable"));
     }
 
     /**
      * Bulk create tables with auto-generated names (BUSINESS_OWNER only)
      */
     @Transactional
-    public List<TableResponse> bulkCreateTables(UUID ownerId, BulkCreateTablesRequest request) {
-        Store store = storeRepository.findById(request.getStoreId())
+    public List<TableResponse> bulkCreateTables(@NonNull UUID ownerId, @NonNull BulkCreateTablesRequest request) {
+        Long storeId = requireValue(request.getStoreId(), "storeId");
+        Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Store not found with id: " + request.getStoreId()));
 
         // Verify ownership
@@ -76,7 +80,7 @@ public class TableService {
 
         // If startNumber is not provided, find the next available number
         if (request.getStartNumber() == null) {
-            List<Tables> existingTables = tablesRepository.findByStoreId(request.getStoreId());
+            List<Tables> existingTables = tablesRepository.findByStoreId(storeId);
             // Find highest table number
             int maxNumber = existingTables.stream()
                     .map(Tables::getName)
@@ -101,7 +105,7 @@ public class TableService {
 
         List<Tables> savedTables = tablesRepository.saveAll(tables);
         return savedTables.stream()
-                .map(this::convertToResponse)
+                .map(table -> convertToResponse(requireValue(table, "table")))
                 .collect(Collectors.toList());
     }
 
@@ -109,26 +113,27 @@ public class TableService {
      * Update table status (STAFF, CASHIER can update)
      */
     @Transactional
-    public TableResponse updateTableStatus(Long tableId, TableStatusRequest request, UUID userId, String role) {
-        Tables table = tablesRepository.findById(tableId)
+    public TableResponse updateTableStatus(@NonNull Long tableId, @NonNull TableStatusRequest request,
+            @NonNull UUID userId, String role) {
+        Tables table = tablesRepository.findById(requireValue(tableId, "tableId"))
                 .orElseThrow(() -> new ResourceNotFoundException("Table not found with id: " + tableId));
 
         // Validate working hours for STAFF and CASHIER
         if ("ROLE_STAFF".equals(role) || "ROLE_CASHIER".equals(role)) {
-            validateWorkingHours(userId, table.getStore().getId());
+            validateWorkingHours(userId, requireValue(table.getStore().getId(), "store.id"));
         }
 
         table.setStatus(request.getStatus());
-        Tables updated = tablesRepository.save(table);
-        return convertToResponse(updated);
+        Tables updated = tablesRepository.save(requireValue(table, "table"));
+        return convertToResponse(requireValue(updated, "updatedTable"));
     }
 
     /**
      * Delete a table (BUSINESS_OWNER only)
      */
     @Transactional
-    public void deleteTable(UUID ownerId, Long tableId) {
-        Tables table = tablesRepository.findById(tableId)
+    public void deleteTable(@NonNull UUID ownerId, @NonNull Long tableId) {
+        Tables table = tablesRepository.findById(requireValue(tableId, "tableId"))
                 .orElseThrow(() -> new ResourceNotFoundException("Table not found with id: " + tableId));
 
         // Verify ownership
@@ -136,13 +141,13 @@ public class TableService {
             throw new UnauthorizedException("You don't have permission to delete this table");
         }
 
-        tablesRepository.delete(table);
+        tablesRepository.delete(requireValue(table, "table"));
     }
 
     /**
      * Validate if user is currently within their working hours
      */
-    private void validateWorkingHours(UUID userId, Long storeId) {
+    private void validateWorkingHours(@NonNull UUID userId, @NonNull Long storeId) {
         // Find shifts for today
         List<StaffShift> userShifts = staffShiftRepository.findByUserIdAndShiftDate(
                 userId,
@@ -194,7 +199,7 @@ public class TableService {
     /**
      * Check if user is currently in working hours
      */
-    public boolean isInWorkingHours(UUID userId) {
+    public boolean isInWorkingHours(@NonNull UUID userId) {
         try {
             List<StaffShift> userShifts = staffShiftRepository.findByUserIdAndShiftDate(
                     userId,
@@ -230,9 +235,10 @@ public class TableService {
     /**
      * Convert Tables entity to response DTO
      */
-    private TableResponse convertToResponse(Tables table) {
+    private TableResponse convertToResponse(@NonNull Tables table) {
         // Find current active order for this table
-        List<Order> activeOrders = orderRepository.findActiveOrderByTableId(table.getId());
+        Long tableId = requireValue(table.getId(), "table.id");
+        List<Order> activeOrders = orderRepository.findActiveOrderByTableId(tableId);
         Long currentOrderId = activeOrders.isEmpty() ? null : activeOrders.get(0).getId();
 
         return TableResponse.builder()
@@ -243,5 +249,10 @@ public class TableService {
                 .status(table.getStatus())
                 .currentOrderId(currentOrderId)
                 .build();
+    }
+
+    @NonNull
+    private <T> T requireValue(T value, String fieldName) {
+        return Objects.requireNonNull(value, fieldName + " must not be null");
     }
 }

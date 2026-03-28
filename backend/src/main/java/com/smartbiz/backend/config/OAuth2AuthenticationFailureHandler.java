@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.util.Objects;
 
 @Component
 public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
@@ -20,7 +21,11 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception)
             throws IOException, ServletException {
-        String targetUrl = UriComponentsBuilder.fromUriString(authorizedRedirectUri)
+        String redirectUri = Objects.requireNonNull(
+                authorizedRedirectUri,
+                "app.oauth2.authorized-redirect-uri must not be null");
+
+        String targetUrl = UriComponentsBuilder.fromUriString(redirectUri)
                 .queryParam("error", exception.getMessage())
                 .build()
                 .encode()

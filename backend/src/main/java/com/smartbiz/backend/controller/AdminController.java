@@ -8,6 +8,7 @@ import com.smartbiz.backend.service.AdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -45,8 +46,8 @@ public class AdminController {
     @PutMapping("/users/{userId}/status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserResponse> updateUserStatus(
-            @PathVariable UUID userId,
-            @Valid @RequestBody UpdateUserStatusRequest request) {
+            @PathVariable @NonNull UUID userId,
+            @Valid @RequestBody @NonNull UpdateUserStatusRequest request) {
         UserResponse updatedUser = adminService.updateUserStatus(userId, request);
         return ResponseEntity.ok(updatedUser);
     }
@@ -92,7 +93,7 @@ public class AdminController {
      */
     @GetMapping("/stores/{storeId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<StoreResponse> getStoreById(@PathVariable Long storeId) {
+    public ResponseEntity<StoreResponse> getStoreById(@PathVariable @NonNull Long storeId) {
         StoreResponse store = adminService.getStoreById(storeId);
         return ResponseEntity.ok(store);
     }
@@ -106,7 +107,7 @@ public class AdminController {
      */
     @DeleteMapping("/users/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> deleteUser(@PathVariable UUID userId) {
+    public ResponseEntity<String> deleteUser(@PathVariable @NonNull UUID userId) {
         adminService.deleteUser(userId);
         return ResponseEntity.ok("User deleted successfully");
     }
@@ -119,7 +120,7 @@ public class AdminController {
      */
     @GetMapping("/users/{userId}/stores")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<StoreResponse>> getStoresByOwnerId(@PathVariable UUID userId) {
+    public ResponseEntity<List<StoreResponse>> getStoresByOwnerId(@PathVariable @NonNull UUID userId) {
         List<StoreResponse> stores = adminService.getStoresByOwnerId(userId);
         return ResponseEntity.ok(stores);
     }

@@ -43,7 +43,7 @@ CREATE TABLE `stores` (
     `owner_id` VARCHAR(36) NOT NULL,
     `name` VARCHAR(100) NOT NULL,
     `address` VARCHAR(255),
-    `status` VARCHAR(50) NOT NULL,
+    `status` BOOLEAN NOT NULL DEFAULT TRUE,
     `created_at` DATETIME NOT NULL,
     `opening_time` TIME,
     `closing_time` TIME,

@@ -1,13 +1,11 @@
 package com.smartbiz.backend.controller;
 
 import com.smartbiz.backend.dto.OrderResponse;
-import com.smartbiz.backend.entity.User;
 import com.smartbiz.backend.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -39,8 +37,7 @@ public class KitchenController {
      */
     @PutMapping("/orders/{orderId}/complete")
     @PreAuthorize("hasRole('KITCHEN')")
-    public ResponseEntity<OrderResponse> markOrderAsCompleted(@PathVariable Long orderId) {
-        User currentUser = getCurrentUser();
+    public ResponseEntity<OrderResponse> markOrderAsCompleted(@PathVariable @NonNull Long orderId) {
         OrderResponse order = orderService.markOrderAsCompleted(orderId);
         return ResponseEntity.ok(order);
     }
@@ -63,12 +60,6 @@ public class KitchenController {
 
         return ResponseEntity.ok(stats);
     }
-
-    private User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
-    }
-
     // Inner DTO class for kitchen stats
     @lombok.Data
     @lombok.Builder

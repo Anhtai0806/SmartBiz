@@ -7,17 +7,21 @@ import com.smartbiz.backend.enums.TableStatus;
 import com.smartbiz.backend.exception.ResourceNotFoundException;
 import com.smartbiz.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class CashierService {
 
         private final OrderRepository orderRepository;
@@ -30,9 +34,9 @@ public class CashierService {
          * Get dashboard statistics for cashier
          * Shows today's orders, completed orders, pending payments, and revenue
          */
-        public CashierDashboardStatsResponse getDashboardStats(Long storeId) {
+        public CashierDashboardStatsResponse getDashboardStats(@NonNull Long storeId) {
                 // Verify store exists
-                storeRepository.findById(storeId)
+                storeRepository.findById(requireValue(storeId, "storeId"))
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Store not found with id: " + storeId));
 
@@ -68,9 +72,9 @@ public class CashierService {
         /**
          * Get all orders for today filtered by store
          */
-        public List<OrderResponse> getTodayOrders(Long storeId) {
+        public List<OrderResponse> getTodayOrders(@NonNull Long storeId) {
                 // Verify store exists
-                storeRepository.findById(storeId)
+                storeRepository.findById(requireValue(storeId, "storeId"))
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Store not found with id: " + storeId));
 
@@ -82,16 +86,16 @@ public class CashierService {
                 List<Order> orders = orderRepository.findByStoreIdAndCreatedAtBetween(storeId, startOfDay, endOfDay);
 
                 return orders.stream()
-                                .map(orderService::convertToResponse)
+                                .map(order -> orderService.convertToResponse(requireValue(order, "order")))
                                 .collect(Collectors.toList());
         }
 
         /**
          * Get orders that are waiting for payment
          */
-        public List<OrderResponse> getPendingPaymentOrders(Long storeId) {
+        public List<OrderResponse> getPendingPaymentOrders(@NonNull Long storeId) {
                 // Verify store exists
-                storeRepository.findById(storeId)
+                storeRepository.findById(requireValue(storeId, "storeId"))
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Store not found with id: " + storeId));
 
@@ -101,16 +105,16 @@ public class CashierService {
                 // Filter to only include orders where table is WAITING_PAYMENT
                 return orders.stream()
                                 .filter(order -> order.getTable().getStatus() == TableStatus.WAITING_PAYMENT)
-                                .map(orderService::convertToResponse)
+                                .map(order -> orderService.convertToResponse(requireValue(order, "order")))
                                 .collect(Collectors.toList());
         }
 
         /**
          * Get tables that have active orders (for payment processing)
          */
-        public List<TableResponse> getTablesWithOrders(Long storeId) {
+        public List<TableResponse> getTablesWithOrders(@NonNull Long storeId) {
                 // Verify store exists
-                storeRepository.findById(storeId)
+                storeRepository.findById(requireValue(storeId, "storeId"))
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Store not found with id: " + storeId));
 
@@ -118,24 +122,24 @@ public class CashierService {
                 List<Tables> tables = tablesRepository.findByStoreIdAndStatus(storeId, TableStatus.WAITING_PAYMENT);
 
                 return tables.stream()
-                                .map(this::convertToTableResponse)
+                                .map(table -> convertToTableResponse(requireValue(table, "table")))
                                 .collect(Collectors.toList());
         }
 
         /**
          * Get staff members for a specific store (for schedule filtering)
          */
-        public List<UserResponse> getStoreStaff(Long storeId) {
-                Store store = storeRepository.findById(storeId)
+        public List<UserResponse> getStoreStaff(@NonNull Long storeId) {
+                Store store = storeRepository.findById(requireValue(storeId, "storeId"))
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Store not found with id: " + storeId));
 
                 return store.getStaffMembers().stream()
-                                .map(this::convertToUserResponse)
+                                .map(user -> convertToUserResponse(requireValue(user, "user")))
                                 .collect(Collectors.toList());
         }
 
-        private UserResponse convertToUserResponse(User user) {
+        private UserResponse convertToUserResponse(@NonNull User user) {
                 return UserResponse.builder()
                                 .id(user.getId())
                                 .fullName(user.getFullName())
@@ -149,12 +153,17 @@ public class CashierService {
         /**
          * Convert Table entity to TableResponse DTO
          */
-        private TableResponse convertToTableResponse(Tables table) {
+        private TableResponse convertToTableResponse(@NonNull Tables table) {
                 return TableResponse.builder()
                                 .id(table.getId())
                                 .storeId(table.getStore().getId())
                                 .name(table.getName())
                                 .status(table.getStatus())
                                 .build();
+        }
+
+        @NonNull
+        private <T> T requireValue(T value, String fieldName) {
+                return Objects.requireNonNull(value, fieldName + " must not be null");
         }
 }

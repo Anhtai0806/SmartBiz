@@ -7,12 +7,15 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Order Management endpoints
@@ -29,7 +32,7 @@ public class OrderController {
      */
     @GetMapping("/table/{tableId}")
     @PreAuthorize("hasAnyRole('STAFF', 'CASHIER', 'BUSINESS_OWNER')")
-    public ResponseEntity<OrderResponse> getOrderByTable(@PathVariable Long tableId) {
+    public ResponseEntity<OrderResponse> getOrderByTable(@PathVariable @NonNull Long tableId) {
         OrderResponse order = orderService.getOrderByTable(tableId);
         return ResponseEntity.ok(order);
     }
@@ -39,7 +42,7 @@ public class OrderController {
      */
     @GetMapping("/shift/{shiftId}")
     @PreAuthorize("hasAnyRole('STAFF', 'CASHIER', 'BUSINESS_OWNER')")
-    public ResponseEntity<List<OrderResponse>> getOrdersByShift(@PathVariable Long shiftId) {
+    public ResponseEntity<List<OrderResponse>> getOrdersByShift(@PathVariable @NonNull Long shiftId) {
         List<OrderResponse> orders = orderService.getOrdersByShift(shiftId);
         return ResponseEntity.ok(orders);
     }
@@ -49,7 +52,7 @@ public class OrderController {
      */
     @GetMapping("/store/{storeId}")
     @PreAuthorize("hasRole('BUSINESS_OWNER')")
-    public ResponseEntity<List<OrderResponse>> getOrdersByStore(@PathVariable Long storeId) {
+    public ResponseEntity<List<OrderResponse>> getOrdersByStore(@PathVariable @NonNull Long storeId) {
         List<OrderResponse> orders = orderService.getOrdersByStore(storeId);
         return ResponseEntity.ok(orders);
     }
@@ -59,9 +62,9 @@ public class OrderController {
      */
     @PostMapping
     @PreAuthorize("hasAnyRole('STAFF', 'CASHIER')")
-    public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody OrderRequest request) {
+    public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody @NonNull OrderRequest request) {
         User currentUser = getCurrentUser();
-        OrderResponse order = orderService.createOrder(currentUser.getId(), request);
+        OrderResponse order = orderService.createOrder(getCurrentUserId(currentUser), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(order);
     }
 
@@ -71,8 +74,8 @@ public class OrderController {
     @PostMapping("/{orderId}/items")
     @PreAuthorize("hasAnyRole('STAFF', 'CASHIER')")
     public ResponseEntity<OrderResponse> addItemToOrder(
-            @PathVariable Long orderId,
-            @Valid @RequestBody OrderItemRequest request) {
+            @PathVariable @NonNull Long orderId,
+            @Valid @RequestBody @NonNull OrderItemRequest request) {
         OrderResponse order = orderService.addItemToOrder(orderId, request);
         return ResponseEntity.ok(order);
     }
@@ -83,8 +86,8 @@ public class OrderController {
     @PutMapping("/{orderId}/status")
     @PreAuthorize("hasAnyRole('CASHIER', 'BUSINESS_OWNER')")
     public ResponseEntity<OrderResponse> updateOrderStatus(
-            @PathVariable Long orderId,
-            @Valid @RequestBody OrderStatusRequest request) {
+            @PathVariable @NonNull Long orderId,
+            @Valid @RequestBody @NonNull OrderStatusRequest request) {
         OrderResponse order = orderService.updateOrderStatus(orderId, request);
         return ResponseEntity.ok(order);
     }
@@ -95,8 +98,8 @@ public class OrderController {
     @DeleteMapping("/{orderId}/items/{itemId}")
     @PreAuthorize("hasAnyRole('STAFF', 'CASHIER', 'BUSINESS_OWNER')")
     public ResponseEntity<OrderResponse> removeItemFromOrder(
-            @PathVariable Long orderId,
-            @PathVariable Long itemId) {
+            @PathVariable @NonNull Long orderId,
+            @PathVariable @NonNull Long itemId) {
         OrderResponse order = orderService.removeItemFromOrder(orderId, itemId);
         return ResponseEntity.ok(order);
     }
@@ -107,15 +110,25 @@ public class OrderController {
     @PutMapping("/{orderId}/items/{itemId}")
     @PreAuthorize("hasAnyRole('STAFF', 'CASHIER', 'BUSINESS_OWNER')")
     public ResponseEntity<OrderResponse> updateOrderItem(
-            @PathVariable Long orderId,
-            @PathVariable Long itemId,
-            @Valid @RequestBody UpdateOrderItemRequest request) {
+            @PathVariable @NonNull Long orderId,
+            @PathVariable @NonNull Long itemId,
+            @Valid @RequestBody @NonNull UpdateOrderItemRequest request) {
         OrderResponse order = orderService.updateOrderItem(orderId, itemId, request);
         return ResponseEntity.ok(order);
     }
 
+    @NonNull
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return (User) authentication.getPrincipal();
+        Object principal = Objects.requireNonNull(authentication, "authentication must not be null").getPrincipal();
+        if (!(principal instanceof User user)) {
+            throw new IllegalStateException("Authenticated principal is not a User");
+        }
+        return Objects.requireNonNull(user, "authenticated user must not be null");
+    }
+
+    @NonNull
+    private UUID getCurrentUserId(@NonNull User user) {
+        return Objects.requireNonNull(user.getId(), "currentUser.id must not be null");
     }
 }

@@ -17,6 +17,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 @Component
@@ -31,9 +32,12 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication)
             throws IOException, ServletException {
+        String redirectUri = Objects.requireNonNull(
+                authorizedRedirectUri,
+                "app.oauth2.authorized-redirect-uri must not be null");
 
         if (response.isCommitted()) {
-            log.warn("Response has already been committed. Unable to redirect to {}", authorizedRedirectUri);
+            log.warn("Response has already been committed. Unable to redirect to {}", redirectUri);
             return;
         }
 
@@ -48,7 +52,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
             LoginResponse loginResponse = authService.loginWithOAuth2(email, fullName);
 
-            String targetUrl = UriComponentsBuilder.fromUriString(authorizedRedirectUri)
+            String targetUrl = UriComponentsBuilder.fromUriString(redirectUri)
                     .queryParam("token", loginResponse.getToken())
                     .queryParam("role", loginResponse.getRole())
                     .queryParam("email", loginResponse.getEmail())
@@ -66,7 +70,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         } catch (Exception ex) {
             log.error("OAuth2 login failed", ex);
             clearAuthenticationAttributes(request);
-            String targetUrl = UriComponentsBuilder.fromUriString(authorizedRedirectUri)
+            String targetUrl = UriComponentsBuilder.fromUriString(redirectUri)
                     .queryParam("error", "OAuth2 login failed: " + ex.getMessage())
                     .build()
                     .encode()

@@ -2,8 +2,10 @@ package com.smartbiz.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -12,7 +14,9 @@ import com.smartbiz.backend.enums.PaymentMethod;
 
 @Entity
 @Table(name = "payment_transactions")
-@Data
+@Getter
+@Setter
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 public class PaymentTransaction {
@@ -23,6 +27,7 @@ public class PaymentTransaction {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "invoice_id", nullable = false)
+    @ToString.Exclude
     private Invoice invoice;
 
     @Column(name = "transaction_code", unique = true, nullable = false, length = 50)
