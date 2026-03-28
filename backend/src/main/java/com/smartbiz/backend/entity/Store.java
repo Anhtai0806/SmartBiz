@@ -13,8 +13,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.smartbiz.backend.enums.Status;
-
 @Entity
 @Table(name = "stores")
 @Getter
@@ -42,9 +40,9 @@ public class Store {
     @Column(length = 255)
     private String address;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Status status;
+    @Builder.Default
+    private Boolean status = true;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -86,7 +84,7 @@ public class Store {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         if (status == null) {
-            status = Status.ACTIVE;
+            status = true;
         }
     }
 }

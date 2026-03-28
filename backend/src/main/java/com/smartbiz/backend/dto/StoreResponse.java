@@ -24,7 +24,7 @@ public class StoreResponse {
     private UUID ownerId;
     private String ownerName;
     private String ownerEmail;
-    private String status;
+    private Boolean status;
     private Integer staffCount;
     private Integer tableCount;
     private LocalDateTime createdAt;

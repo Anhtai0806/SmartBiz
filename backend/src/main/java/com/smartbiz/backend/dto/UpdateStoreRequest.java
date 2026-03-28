@@ -29,5 +29,5 @@ public class UpdateStoreRequest {
 
     private java.time.LocalTime closingTime;
 
-    private String status; // ACTIVE or INACTIVE
+    private Boolean status;
 }

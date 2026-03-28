@@ -72,6 +72,8 @@ const OwnerStores = () => {
         navigate(`/owner/stores/${storeId}`);
     };
 
+    const isStoreActive = (status) => status !== false;
+
     if (loading) {
         return <div className="loading">Đang tải danh sách cửa hàng...</div>;
     }
@@ -113,8 +115,8 @@ const OwnerStores = () => {
                         <h3>{store.name}</h3>
                         <p className="store-address">{store.address}</p>
                         <div className="store-footer">
-                            <StatusBadge status={store.status === 'ACTIVE' ? 'success' : 'danger'}>
-                                {store.status === 'ACTIVE' ? 'Đang hoạt động' : 'Tạm ngưng'}
+                            <StatusBadge status={isStoreActive(store.status) ? 'success' : 'danger'}>
+                                {isStoreActive(store.status) ? 'Đang hoạt động' : 'Tạm ngưng'}
                             </StatusBadge>
                             <span className="store-date">
                                 Tạo: {new Date(store.createdAt).toLocaleDateString('vi-VN')}

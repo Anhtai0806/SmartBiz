@@ -231,7 +231,7 @@ This document provides a comprehensive overview of the Spring Boot backend APIs 
     "ownerId": "uuid-string",
     "ownerName": "John Doe",
     "ownerEmail": "owner@example.com",
-    "status": "ACTIVE",
+    "status": true,
     "staffCount": 5,
     "tableCount": 12,
     "createdAt": "2026-03-22T10:00:00"
@@ -253,7 +253,7 @@ This document provides a comprehensive overview of the Spring Boot backend APIs 
   Authorization: Bearer <your_jwt_token_here>
   Content-Type: application/json
   ```
-- **Description**: There is currently no separate `active store` endpoint in the backend. Store activation/deactivation is handled by the same update endpoint via the `status` field.
+- **Description**: There is currently no separate active store endpoint in the backend. Store activation/deactivation is handled by the same update endpoint via the boolean `status` field.
 - **Path Variable**:
   - `storeId`: ID of the store to activate/deactivate
 - **Request Body**:
@@ -265,13 +265,13 @@ This document provides a comprehensive overview of the Spring Boot backend APIs 
     "taxRate": 0.1,
     "openingTime": "07:30:00",
     "closingTime": "23:00:00",
-    "status": "INACTIVE"
+    "status": false
   }
   ```
 - **Allowed `status` values**:
-  - `ACTIVE`
-  - `INACTIVE`
-- **Response Body**: Returns the updated `StoreResponse` with the new `status`.
+  - `true`: Store is active
+  - `false`: Store is inactive
+- **Response Body**: Returns the updated `StoreResponse` with the new boolean `status`.
 
 ### 2.6. Dashboard Stats
 - **URL**: `/business/dashboard`
@@ -661,7 +661,7 @@ This document provides a comprehensive overview of the Spring Boot backend APIs 
       "phone": "0987654321",
       "fullName": "Nguyen Van A",
       "role": "BUSINESS_OWNER",
-      "status": "ACTIVE",
+      "status": true,
       "salaryType": null,
       "salaryAmount": null,
       "createdAt": "2026-03-20T09:15:00"
@@ -706,7 +706,7 @@ This document provides a comprehensive overview of the Spring Boot backend APIs 
       "ownerId": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
       "ownerName": "Nguyen Van A",
       "ownerEmail": "owner@smartbiz.com",
-      "status": "ACTIVE",
+      "status": true,
       "staffCount": 5,
       "tableCount": 12,
       "createdAt": "2026-03-20T09:15:00"

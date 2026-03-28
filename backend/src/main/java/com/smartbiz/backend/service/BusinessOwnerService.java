@@ -101,13 +101,7 @@ public class BusinessOwnerService {
 
         // Update status if provided
         if (request.getStatus() != null) {
-            Status newStatus;
-            try {
-                newStatus = Status.valueOf(request.getStatus().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                throw new InvalidRoleException("Invalid status. Must be ACTIVE or INACTIVE");
-            }
-            store.setStatus(newStatus);
+            store.setStatus(request.getStatus());
         }
 
         Store updatedStore = storeRepository.save(requireValue(store, "store"));
@@ -394,7 +388,7 @@ public class BusinessOwnerService {
                 .closingTime(store.getClosingTime())
                 .ownerId(store.getOwner().getId())
                 .ownerName(store.getOwner().getFullName())
-                .status(store.getStatus() != null ? store.getStatus().name() : "ACTIVE")
+                .status(Boolean.TRUE.equals(store.getStatus()))
                 .staffMembers(staffResponses)
                 .menuItems(menuItemResponses)
                 .tables(tableResponses)
@@ -647,7 +641,7 @@ public class BusinessOwnerService {
                 .closingTime(store.getClosingTime())
                 .ownerId(store.getOwner().getId())
                 .ownerName(store.getOwner().getFullName())
-                .status(store.getStatus() != null ? store.getStatus().name() : "ACTIVE")
+                .status(Boolean.TRUE.equals(store.getStatus()))
                 .createdAt(store.getCreatedAt())
                 .build();
     }
