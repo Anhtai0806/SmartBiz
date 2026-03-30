@@ -47,7 +47,7 @@ public class AdminService {
          * @return List of all users
          */
         public List<UserResponse> getAllUsers() {
-                List<User> users = userRepository.findAll();
+                List<User> users = userRepository.findByRole(Role.BUSINESS_OWNER);
                 return users.stream()
                                 .map(this::convertToUserResponse)
                                 .collect(Collectors.toList());
