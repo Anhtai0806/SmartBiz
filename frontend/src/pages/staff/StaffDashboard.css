@@ -226,3 +226,71 @@
     background: #059669;
     transform: translateY(-2px);
 }
+
+/* Keep role header buttons in one horizontal row on every viewport. */
+.staff-header {
+    gap: 20px;
+    flex-wrap: nowrap;
+}
+
+.staff-header .header-brand,
+.staff-header .header-actions {
+    flex: 0 0 auto;
+}
+
+.staff-header .header-brand h1 {
+    white-space: nowrap;
+}
+
+.staff-header .header-nav {
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    scrollbar-width: thin;
+}
+
+.staff-header .nav-item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .staff-header {
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .staff-header .header-brand {
+        display: block;
+    }
+
+    .staff-header .mobile-menu-toggle {
+        display: none;
+    }
+
+    .staff-header .header-nav,
+    .staff-header .header-nav.mobile-open {
+        display: flex;
+        flex-direction: row;
+        width: auto;
+    }
+
+    .staff-header .nav-item {
+        width: auto;
+        justify-content: flex-start;
+    }
+
+    .staff-header .header-actions {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .staff-header .logout-btn {
+        width: auto;
+    }
+}

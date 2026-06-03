@@ -53,6 +53,42 @@ export const register = async (userData) => {
     return response.json();
 };
 
+// Verify registration OTP
+export const verifyRegisterOtp = async ({ email, otpCode }) => {
+    const response = await fetch(`${API_BASE_URL}/auth/register/verify`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, otpCode }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'OTP verification failed');
+    }
+
+    return response.json();
+};
+
+// Resend registration OTP. The backend replaces the pending OTP, so old codes stop working.
+export const resendRegisterOtp = async (email) => {
+    const response = await fetch(`${API_BASE_URL}/auth/register/resend`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Could not resend OTP');
+    }
+
+    return response.json();
+};
+
 // Get current user
 export const getCurrentUser = async () => {
     const response = await fetch(`${API_BASE_URL}/auth/me`, {

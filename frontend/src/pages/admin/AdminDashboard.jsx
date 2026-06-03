@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import AdminDashboardHome from './AdminDashboardHome';
 import AdminUsers from './AdminUsers';
@@ -6,7 +6,6 @@ import './AdminDashboard.css';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const userName = localStorage.getItem('fullName') || 'Admin';
 
     const handleLogout = () => {
@@ -19,44 +18,34 @@ const AdminDashboard = () => {
 
     return (
         <div className="admin-dashboard">
-            <aside className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
-                <div className="sidebar-header">
-                    <h2>SmartBiz Admin</h2>
-                    <button
-                        className="sidebar-toggle"
-                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    >
-                        {isSidebarOpen ? '◀' : '▶'}
-                    </button>
+            <header className="admin-top-header">
+                <div className="header-brand">
+                    <h1>SmartBiz Admin</h1>
                 </div>
-                <nav className="sidebar-nav">
+
+                <nav className="header-nav">
                     <Link to="/admin/dashboard" className="nav-item">
-                        <span className="nav-icon">📊</span>
-                        {isSidebarOpen && <span>Dashboard</span>}
+                        <span className="nav-icon">DB</span>
+                        <span>Dashboard</span>
                     </Link>
                     <Link to="/admin/users" className="nav-item">
-                        <span className="nav-icon">👥</span>
-                        {isSidebarOpen && <span>Business Owners</span>}
+                        <span className="nav-icon">BO</span>
+                        <span>Business Owners</span>
                     </Link>
                 </nav>
-            </aside>
 
-            <div className="main-content">
-                <header className="admin-header">
-                    <div className="header-left">
-                        <h1>Admin Panel</h1>
+                <div className="header-actions">
+                    <div className="user-info">
+                        <span className="user-name">{userName}</span>
+                        <span className="user-role">Admin</span>
                     </div>
-                    <div className="header-right">
-                        <div className="user-info">
-                            <span className="user-name">{userName}</span>
-                            <span className="user-role">Admin</span>
-                        </div>
-                        <button className="logout-btn" onClick={handleLogout}>
-                            Logout
-                        </button>
-                    </div>
-                </header>
+                    <button className="logout-btn" onClick={handleLogout}>
+                        Logout
+                    </button>
+                </div>
+            </header>
 
+            <main className="main-content">
                 <div className="content-area">
                     <Routes>
                         <Route path="/" element={<AdminDashboardHome />} />
@@ -64,7 +53,7 @@ const AdminDashboard = () => {
                         <Route path="/users" element={<AdminUsers />} />
                     </Routes>
                 </div>
-            </div>
+            </main>
         </div>
     );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import BusinessOwnerDashboardHome from './BusinessOwnerDashboardHome';
 import OwnerStores from './OwnerStores';
@@ -12,10 +12,83 @@ import './BusinessOwnerDashboard.css';
 
 const BusinessOwnerDashboard = () => {
     const navigate = useNavigate();
+    const userDropdownRef = useRef(null);
+    const userDropdownTriggerRef = useRef(null);
+    const closeMenuTimeoutRef = useRef(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [userMenuPosition, setUserMenuPosition] = useState({ top: 0, left: 0 });
     const userName = localStorage.getItem('fullName') || 'Business Owner';
 
+    const updateUserMenuPosition = () => {
+        const trigger = userDropdownTriggerRef.current;
+        if (!trigger) {
+            return;
+        }
+
+        const rect = trigger.getBoundingClientRect();
+        const menuWidth = 200;
+        const viewportPadding = 12;
+        const left = Math.min(
+            Math.max(viewportPadding, rect.right - menuWidth),
+            window.innerWidth - menuWidth - viewportPadding
+        );
+
+        setUserMenuPosition({
+            top: rect.bottom + 6,
+            left
+        });
+    };
+
+    const openUserMenu = () => {
+        if (closeMenuTimeoutRef.current) {
+            clearTimeout(closeMenuTimeoutRef.current);
+            closeMenuTimeoutRef.current = null;
+        }
+
+        updateUserMenuPosition();
+        setIsUserMenuOpen(true);
+    };
+
+    const scheduleCloseUserMenu = () => {
+        if (closeMenuTimeoutRef.current) {
+            clearTimeout(closeMenuTimeoutRef.current);
+        }
+
+        closeMenuTimeoutRef.current = setTimeout(() => {
+            setIsUserMenuOpen(false);
+        }, 120);
+    };
+
+    useEffect(() => {
+        const handlePointerDownOutside = (event) => {
+            if (!userDropdownRef.current?.contains(event.target)) {
+                setIsUserMenuOpen(false);
+            }
+        };
+
+        const handleViewportChange = () => {
+            if (isUserMenuOpen) {
+                updateUserMenuPosition();
+            }
+        };
+
+        document.addEventListener('mousedown', handlePointerDownOutside);
+        window.addEventListener('resize', handleViewportChange);
+        window.addEventListener('scroll', handleViewportChange, true);
+
+        return () => {
+            document.removeEventListener('mousedown', handlePointerDownOutside);
+            window.removeEventListener('resize', handleViewportChange);
+            window.removeEventListener('scroll', handleViewportChange, true);
+            if (closeMenuTimeoutRef.current) {
+                clearTimeout(closeMenuTimeoutRef.current);
+            }
+        };
+    }, [isUserMenuOpen]);
+
     const handleLogout = () => {
+        setIsUserMenuOpen(false);
         localStorage.removeItem('token');
         localStorage.removeItem('role');
         localStorage.removeItem('email');
@@ -58,18 +131,55 @@ const BusinessOwnerDashboard = () => {
                 </nav>
 
                 <div className="header-actions">
-                    <div className="user-dropdown-container">
-                        <div className="user-info">
-                            <span className="user-name">{userName}</span>
-                            <span className="user-role">Business Owner</span>
-                        </div>
-                        <div className="user-dropdown-menu">
-                            <Link to="/owner/profile" className="dropdown-item">Tài khoản của tôi</Link>
-                            <button className="dropdown-item" onClick={handleLogout}>
+                    <div
+                        ref={userDropdownRef}
+                        className={`user-dropdown-container ${isUserMenuOpen ? 'menu-open' : ''}`}
+                        onMouseEnter={openUserMenu}
+                        onMouseLeave={scheduleCloseUserMenu}
+                    >
+                        <button
+                            ref={userDropdownTriggerRef}
+                            type="button"
+                            className="user-dropdown-trigger"
+                            aria-haspopup="menu"
+                            aria-expanded={isUserMenuOpen}
+                            onClick={() => {
+                                if (isUserMenuOpen) {
+                                    setIsUserMenuOpen(false);
+                                    return;
+                                }
+
+                                openUserMenu();
+                            }}
+                        >
+                            <div className="user-info">
+                                <span className="user-name">{userName}</span>
+                                <span className="user-role">Business Owner</span>
+                            </div>
+                            <span className="user-menu-caret">▾</span>
+                        </button>
+
+                        <div
+                            className="user-dropdown-menu"
+                            role="menu"
+                            style={isUserMenuOpen ? userMenuPosition : undefined}
+                            onMouseEnter={openUserMenu}
+                            onMouseLeave={scheduleCloseUserMenu}
+                        >
+                            <Link
+                                to="/owner/profile"
+                                className="dropdown-item"
+                                role="menuitem"
+                                onClick={() => setIsUserMenuOpen(false)}
+                            >
+                                Tài khoản của tôi
+                            </Link>
+                            <button className="dropdown-item" role="menuitem" onClick={handleLogout}>
                                 Đăng xuất
                             </button>
                         </div>
                     </div>
+
                     <button
                         className="mobile-menu-toggle"
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

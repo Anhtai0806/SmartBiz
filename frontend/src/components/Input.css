@@ -56,6 +56,11 @@
     cursor: not-allowed;
 }
 
+.input-field input:user-invalid {
+    border-color: var(--color-error);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
 .input-field label {
     position: absolute;
     left: 1rem;

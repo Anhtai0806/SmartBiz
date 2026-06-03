@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import './Login.css';
+
+const GOOGLE_AUTH_URL = 'http://localhost:8080/oauth2/authorization/google';
 
 const Login = () => {
     const navigate = useNavigate();
@@ -66,14 +68,7 @@ const Login = () => {
             return;
         }
 
-        // Auto-redirect if already logged in
-        const token = localStorage.getItem('token');
-        const role = localStorage.getItem('role');
-
-        if (token && role) {
-            redirectByRole(role);
-        }
-    }, [location.search, navigate, redirectByRole]);
+    }, [location.search, redirectByRole]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -81,7 +76,7 @@ const Login = () => {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
-        // Clear error when user types
+
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
@@ -115,16 +110,12 @@ const Login = () => {
         setIsLoading(true);
 
         try {
-            // Import the login API function
             const { login } = await import('../api/authApi');
-
-            // Call backend API
             const response = await login({
                 username: formData.username,
                 password: formData.password
             });
 
-            // Store user data in localStorage
             localStorage.setItem('token', response.token);
             localStorage.setItem('role', response.role);
             localStorage.setItem('email', response.email);
@@ -135,7 +126,6 @@ const Login = () => {
             }
             localStorage.setItem('rememberMe', formData.rememberMe.toString());
 
-            // Role-based redirection
             redirectByRole(response.role);
         } catch (error) {
             setErrors({
@@ -147,38 +137,41 @@ const Login = () => {
     };
 
     return (
-        <div className="login-page">
-            <div className="login-background">
-                <div className="login-gradient"></div>
-                <div className="login-shapes">
-                    <div className="shape shape-1"></div>
-                    <div className="shape shape-2"></div>
-                    <div className="shape shape-3"></div>
-                </div>
-            </div>
+        <div className="login-page auth-page">
+            <Link to="/" className="auth-brand-link" aria-label="Về trang chủ SmartBiz">
+                <span className="auth-brand-icon">📊</span>
+                <span className="auth-brand-text">SmartBiz</span>
+            </Link>
 
-            <div className="login-container">
-                <div className="login-card scale-in">
-                    <div className="login-header">
-                        <h1 className="login-title">Đăng nhập</h1>
-                        <p className="login-subtitle">Chào mừng trở lại! Vui lòng đăng nhập vào tài khoản của bạn</p>
+            <div className="auth-card auth-card-login">
+                <section className="auth-welcome-panel auth-welcome-left" aria-label="Đăng ký tài khoản">
+                    <div className="auth-welcome-content">
+                        <h2>Hello, Welcome!</h2>
+                        <p>Don't have an account?</p>
+                        <Link to="/register" className="auth-outline-link">Register</Link>
+                    </div>
+                </section>
+
+                <section className="auth-form-panel">
+                    <div className="login-header auth-header">
+                        <h1 className="login-title auth-title">Login</h1>
                     </div>
 
                     {errors.general && (
-                        <div className="error-message">
+                        <div className="auth-error-message">
                             {errors.general}
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="login-form">
+                    <form onSubmit={handleSubmit} className="login-form auth-form">
                         <Input
-                            label="Email hoặc Số điện thoại"
+                            label="Email hoặc số điện thoại"
                             type="text"
                             name="username"
                             value={formData.username}
                             onChange={handleChange}
                             error={errors.username}
-                            icon="📧"
+                            icon="👤"
                             required
                         />
 
@@ -203,7 +196,7 @@ const Login = () => {
                                 />
                                 <span>Ghi nhớ đăng nhập</span>
                             </label>
-                            <a href="#" className="forgot-password">Quên mật khẩu?</a>
+                            <button type="button" className="forgot-password">Quên mật khẩu?</button>
                         </div>
 
                         <Button
@@ -211,32 +204,23 @@ const Login = () => {
                             fullWidth
                             size="large"
                             disabled={isLoading}
+                            className="auth-submit-btn"
                         >
-                            {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                            {isLoading ? 'Đang đăng nhập...' : 'Login'}
                         </Button>
                     </form>
 
-                    <div className="login-divider">
-                        <span>hoặc</span>
+                    <div className="login-divider auth-divider">
+                        <span>hoặc đăng nhập nhanh</span>
                     </div>
 
-                    <div className="social-login">
-
-                        <a href="http://localhost:8080/oauth2/authorization/google" className="social-btn">
-                            🔵 Google
+                    <div className="social-login auth-socials">
+                        <a href={GOOGLE_AUTH_URL} className="google-auth-btn" aria-label="Đăng nhập bằng Google">
+                            <span className="google-auth-icon">G</span>
+                            <span>Đăng nhập bằng Google</span>
                         </a>
-
-                        <button className="social-btn">
-                            <span>📘</span> Facebook
-                        </button>
                     </div>
-
-                    <div className="login-footer">
-                        <p>
-                            Chưa có tài khoản? <Link to="/register">Đăng ký ngay</Link>
-                        </p>
-                    </div>
-                </div>
+                </section>
             </div>
         </div>
     );

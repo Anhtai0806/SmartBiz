@@ -63,7 +63,7 @@ const ShiftCalendar = ({ storeId, readOnly = false, api = {} }) => {
                 setStaff([]);
             }
         }
-    }, [storeId]);
+    }, [getStaff, storeId]);
 
     const fetchShifts = useCallback(async () => {
         try {
@@ -119,7 +119,7 @@ const ShiftCalendar = ({ storeId, readOnly = false, api = {} }) => {
         } finally {
             setLoading(false);
         }
-    }, [storeId, currentDate, readOnly]);
+    }, [currentDate, getShifts, readOnly, storeId]);
 
     useEffect(() => {
         if (storeId) {
@@ -340,4 +340,3 @@ const ShiftCalendar = ({ storeId, readOnly = false, api = {} }) => {
 };
 
 export default ShiftCalendar;
-

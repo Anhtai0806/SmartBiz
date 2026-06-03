@@ -11,7 +11,8 @@ const Input = ({
     error = '',
     icon = null,
     required = false,
-    disabled = false
+    disabled = false,
+    ...inputProps
 }) => {
     const [isFocused, setIsFocused] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -37,6 +38,8 @@ const Input = ({
                     required={required}
                     disabled={disabled}
                     className={value ? 'has-value' : ''}
+                    aria-invalid={error ? 'true' : undefined}
+                    {...inputProps}
                 />
                 {label && (
                     <label className={value || isFocused ? 'label-float' : ''}>

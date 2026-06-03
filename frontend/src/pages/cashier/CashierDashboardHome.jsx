@@ -1,8 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import StatCard from '../../components/StatCard';
 import { useNavigate } from 'react-router-dom';
 import { getCashierDashboardStats, getTodayOrders } from '../../api/cashierApi';
 import './CashierDashboardHome.css';
+
+const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+};
 
 const CashierDashboardHome = () => {
     const navigate = useNavigate();
@@ -16,11 +21,7 @@ const CashierDashboardHome = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        fetchDashboardData();
-    }, []);
-
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -52,18 +53,17 @@ const CashierDashboardHome = () => {
             setError('Không thể tải dữ liệu dashboard. Vui lòng thử lại.');
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchDashboardData();
+    }, [fetchDashboardData]);
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('vi-VN', {
             style: 'currency',
             currency: 'VND'
         }).format(amount);
-    };
-
-    const formatTime = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     };
 
     const getStatusBadge = (status) => {

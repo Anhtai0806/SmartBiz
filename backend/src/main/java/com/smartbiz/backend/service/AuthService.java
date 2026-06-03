@@ -37,7 +37,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthService {
 
-        private static final int REGISTER_OTP_EXPIRES_IN_SECONDS = 60;
+        private static final int REGISTER_OTP_EXPIRES_IN_SECONDS = 180;
         private static final SecureRandom OTP_RANDOM = new SecureRandom();
 
         private final AuthenticationManager authenticationManager;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getStoreTables, createTable, deleteTable, bulkCreateTables } from '../../api/businessOwnerApi';
+import { createTable, deleteTable, bulkCreateTables } from '../../api/businessOwnerApi';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import Input from '../../components/Input';

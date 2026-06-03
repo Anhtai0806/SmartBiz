@@ -8,7 +8,6 @@ const Footer = () => {
         <footer className="footer">
             <div className="container">
                 <div className="footer-content">
-                    {/* Company Info */}
                     <div className="footer-section">
                         <h3 className="footer-logo">
                             <span className="logo-icon">📊</span>
@@ -20,7 +19,6 @@ const Footer = () => {
                         </p>
                     </div>
 
-                    {/* Quick Links */}
                     <div className="footer-section">
                         <h4 className="footer-title">Liên kết</h4>
                         <ul className="footer-links">
@@ -30,7 +28,6 @@ const Footer = () => {
                         </ul>
                     </div>
 
-                    {/* Contact */}
                     <div className="footer-section">
                         <h4 className="footer-title">Liên hệ</h4>
                         <ul className="footer-links">
@@ -40,27 +37,25 @@ const Footer = () => {
                         </ul>
                     </div>
 
-                    {/* Social Media */}
                     <div className="footer-section">
                         <h4 className="footer-title">Theo dõi chúng tôi</h4>
                         <div className="social-links">
-                            <a href="#" className="social-link" aria-label="Facebook">
-                                <span>📘</span>
-                            </a>
-                            <a href="#" className="social-link" aria-label="Twitter">
-                                <span>🐦</span>
-                            </a>
-                            <a href="#" className="social-link" aria-label="LinkedIn">
-                                <span>💼</span>
-                            </a>
-                            <a href="#" className="social-link" aria-label="Instagram">
-                                <span>📷</span>
-                            </a>
+                            <button type="button" className="social-link" aria-label="Facebook">
+                                <span>f</span>
+                            </button>
+                            <button type="button" className="social-link" aria-label="Twitter">
+                                <span>x</span>
+                            </button>
+                            <button type="button" className="social-link" aria-label="LinkedIn">
+                                <span>in</span>
+                            </button>
+                            <button type="button" className="social-link" aria-label="Instagram">
+                                <span>ig</span>
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Copyright */}
                 <div className="footer-bottom">
                     <p>&copy; {currentYear} SmartBiz. All rights reserved.</p>
                 </div>

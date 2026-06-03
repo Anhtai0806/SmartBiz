@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { getTablesWithOrders, getOrderByTable, createCashierInvoice, getStoreQR } from '../../api/cashierApi';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import './CashierPayment.css';
 
 const CashierPayment = () => {
-    const navigate = useNavigate();
     const [tables, setTables] = useState([]);
     const [selectedTable, setSelectedTable] = useState(null);
     const [orderDetails, setOrderDetails] = useState(null);

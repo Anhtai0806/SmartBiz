@@ -6,6 +6,7 @@ import PrivateRoute from './components/PrivateRoute';
 import Index from './pages/Index';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import RegisterOtpVerify from './pages/RegisterOtpVerify';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import BusinessOwnerDashboard from './pages/owner/BusinessOwnerDashboard';
 import CashierDashboard from './pages/cashier/CashierDashboard';
@@ -46,18 +47,13 @@ function App() {
             </>
           } />
           <Route path="/login" element={
-            <>
-              <Navbar />
-              <Login />
-              <Footer />
-            </>
+            <Login />
           } />
           <Route path="/register" element={
-            <>
-              <Navbar />
-              <Register />
-              <Footer />
-            </>
+            <Register />
+          } />
+          <Route path="/register/verify" element={
+            <RegisterOtpVerify />
           } />
 
           {/* Admin routes - protected */}

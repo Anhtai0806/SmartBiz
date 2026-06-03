@@ -24,3 +24,128 @@
   opacity: 0;
   transition: all 0.3s ease-out;
 }
+
+/* Role dashboard headers use shared class names, so keep this final override in App.css. */
+.admin-top-header,
+.owner-header,
+.cashier-header,
+.staff-header,
+.kitchen-header {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 20px;
+  height: 70px !important;
+  min-height: 70px;
+  overflow: hidden;
+}
+
+.admin-top-header .header-brand,
+.owner-header .header-brand,
+.cashier-header .header-brand,
+.staff-header .header-brand,
+.kitchen-header .header-brand,
+.admin-top-header .header-actions,
+.owner-header .header-actions,
+.cashier-header .header-actions,
+.staff-header .header-actions,
+.kitchen-header .header-actions {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  padding: 0 !important;
+  order: initial !important;
+}
+
+.admin-top-header .header-brand h1,
+.owner-header .header-brand h1,
+.cashier-header .header-brand h1,
+.staff-header .header-brand h1,
+.kitchen-header .header-brand h1 {
+  white-space: nowrap;
+}
+
+.admin-top-header .header-nav,
+.owner-header .header-nav,
+.cashier-header .header-nav,
+.staff-header .header-nav,
+.kitchen-header .header-nav {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  margin-top: 0 !important;
+  padding: 0 !important;
+  border-top: 0 !important;
+  position: static !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  white-space: nowrap !important;
+  scrollbar-width: thin;
+  order: initial !important;
+}
+
+.admin-top-header .nav-item,
+.owner-header .nav-item,
+.cashier-header .nav-item,
+.staff-header .nav-item,
+.kitchen-header .nav-item {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  white-space: nowrap !important;
+}
+
+.admin-top-header .mobile-menu-toggle,
+.owner-header .mobile-menu-toggle,
+.cashier-header .mobile-menu-toggle,
+.staff-header .mobile-menu-toggle,
+.kitchen-header .mobile-menu-toggle {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .admin-top-header,
+  .owner-header,
+  .cashier-header,
+  .staff-header,
+  .kitchen-header {
+    gap: 12px;
+    padding-left: 16px;
+    padding-right: 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .admin-top-header .user-info,
+  .owner-header .user-info,
+  .cashier-header .user-info,
+  .staff-header .user-info,
+  .kitchen-header .user-info {
+    display: none !important;
+  }
+
+  .admin-top-header .header-brand h1,
+  .owner-header .header-brand h1,
+  .cashier-header .header-brand h1,
+  .staff-header .header-brand h1,
+  .kitchen-header .header-brand h1 {
+    font-size: 18px;
+  }
+
+  .admin-top-header .header-nav,
+  .owner-header .header-nav,
+  .cashier-header .header-nav,
+  .staff-header .header-nav,
+  .kitchen-header .header-nav {
+    flex: 0 0 auto !important;
+    min-width: max-content !important;
+  }
+}

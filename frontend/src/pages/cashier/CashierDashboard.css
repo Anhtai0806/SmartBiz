@@ -244,3 +244,73 @@
         font-size: 18px;
     }
 }
+
+/* Keep role header buttons in one horizontal row on every viewport. */
+.cashier-header {
+    gap: 20px;
+    flex-wrap: nowrap;
+}
+
+.cashier-header .header-brand,
+.cashier-header .header-actions {
+    flex: 0 0 auto;
+}
+
+.cashier-header .header-brand h1 {
+    white-space: nowrap;
+}
+
+.cashier-header .header-nav {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    scrollbar-width: thin;
+}
+
+.cashier-header .nav-item {
+    flex: 0 0 auto;
+}
+
+@media (max-width: 1024px) {
+    .cashier-header {
+        height: 70px;
+        flex-wrap: nowrap;
+    }
+
+    .cashier-header .header-brand,
+    .cashier-header .header-actions,
+    .cashier-header .header-nav {
+        order: initial;
+        padding: 0;
+    }
+
+    .cashier-header .header-nav {
+        width: auto;
+        border-top: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .cashier-header .mobile-menu-toggle {
+        display: none;
+    }
+
+    .cashier-header .header-nav,
+    .cashier-header .header-nav.mobile-open {
+        display: flex;
+        position: static;
+        flex-direction: row;
+        background: transparent;
+        box-shadow: none;
+        gap: 8px;
+    }
+
+    .cashier-header .nav-item {
+        width: auto;
+        padding: 10px 14px;
+    }
+}

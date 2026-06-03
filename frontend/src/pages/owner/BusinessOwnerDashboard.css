@@ -3,6 +3,7 @@
     flex-direction: column;
     min-height: 100vh;
     background: #f3f4f6;
+    overflow: visible;
 }
 
 /* Header - Horizontal Navigation */
@@ -16,8 +17,10 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 1200;
     height: 70px;
+    overflow: visible;
+    isolation: isolate;
 }
 
 .header-brand h1 {
@@ -73,6 +76,8 @@
     display: flex;
     align-items: center;
     gap: 20px;
+    position: relative;
+    z-index: 2;
 }
 
 .user-info {
@@ -97,14 +102,52 @@
 /* User Dropdown */
 .user-dropdown-container {
     position: relative;
+    z-index: 3;
+}
+
+.user-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: inherit;
     cursor: pointer;
-    padding: 10px;
+    transition: background 0.2s ease;
+}
+
+.user-dropdown-trigger:hover,
+.user-dropdown-container.menu-open .user-dropdown-trigger {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.user-dropdown-trigger:focus-visible {
+    outline: 2px solid rgba(96, 165, 250, 0.95);
+    outline-offset: 2px;
+}
+
+.user-dropdown-trigger .user-info {
+    pointer-events: none;
+}
+
+.user-dropdown-trigger .user-role {
+    text-align: right;
+}
+
+.user-menu-caret {
+    color: #d1d5db;
+    font-size: 12px;
+    transition: transform 0.2s ease;
+}
+
+.user-dropdown-container.menu-open .user-menu-caret {
+    transform: rotate(180deg);
 }
 
 .user-dropdown-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
+    position: fixed;
     width: 200px;
     background: white;
     border-radius: 8px;
@@ -112,10 +155,10 @@
     display: none;
     flex-direction: column;
     overflow: hidden;
-    z-index: 1000;
+    z-index: 5000;
 }
 
-.user-dropdown-container:hover .user-dropdown-menu {
+.user-dropdown-container.menu-open .user-dropdown-menu {
     display: flex;
 }
 
@@ -169,6 +212,9 @@
 .owner-main-content {
     flex: 1;
     width: 100%;
+    position: relative;
+    z-index: 1;
+    overflow: visible;
 }
 
 /* Responsive */
@@ -271,5 +317,75 @@
 
     .nav-icon {
         font-size: 18px;
+    }
+}
+
+/* Keep role header buttons in one horizontal row on every viewport. */
+.owner-header {
+    gap: 20px;
+    flex-wrap: nowrap;
+}
+
+.owner-header .header-brand,
+.owner-header .header-actions {
+    flex: 0 0 auto;
+}
+
+.owner-header .header-brand h1 {
+    white-space: nowrap;
+}
+
+.owner-header .header-nav {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    scrollbar-width: thin;
+}
+
+.owner-header .nav-item {
+    flex: 0 0 auto;
+}
+
+@media (max-width: 1024px) {
+    .owner-header {
+        height: 70px;
+        flex-wrap: nowrap;
+    }
+
+    .owner-header .header-brand,
+    .owner-header .header-actions,
+    .owner-header .header-nav {
+        order: initial;
+        padding: 0;
+    }
+
+    .owner-header .header-nav {
+        width: auto;
+        border-top: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .owner-header .mobile-menu-toggle {
+        display: none;
+    }
+
+    .owner-header .header-nav,
+    .owner-header .header-nav.mobile-open {
+        display: flex;
+        position: static;
+        flex-direction: row;
+        background: transparent;
+        box-shadow: none;
+        gap: 8px;
+    }
+
+    .owner-header .nav-item {
+        width: auto;
+        padding: 10px 14px;
     }
 }

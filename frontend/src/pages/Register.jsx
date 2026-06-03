@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import './Register.css';
 
+const GOOGLE_AUTH_URL = 'http://localhost:8080/oauth2/authorization/google';
+
 const Register = () => {
     const navigate = useNavigate();
+    const formRef = useRef(null);
     const [formData, setFormData] = useState({
         fullName: '',
         email: '',
@@ -14,27 +17,9 @@ const Register = () => {
         confirmPassword: '',
         agreeTerms: false
     });
-    const [errors, setErrors] = useState({});
+    const [generalError, setGeneralError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [passwordStrength, setPasswordStrength] = useState(0);
-
-    const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }));
-
-        // Clear error when user types
-        if (errors[name]) {
-            setErrors(prev => ({ ...prev, [name]: '' }));
-        }
-
-        // Calculate password strength
-        if (name === 'password') {
-            calculatePasswordStrength(value);
-        }
-    };
 
     const calculatePasswordStrength = (password) => {
         let strength = 0;
@@ -47,10 +32,10 @@ const Register = () => {
     };
 
     const getPasswordStrengthLabel = () => {
-        if (passwordStrength < 25) return 'Yếu';
-        if (passwordStrength < 50) return 'Trung bình';
-        if (passwordStrength < 75) return 'Khá';
-        return 'Mạnh';
+        if (passwordStrength < 25) return 'Weak';
+        if (passwordStrength < 50) return 'Fair';
+        if (passwordStrength < 75) return 'Good';
+        return 'Strong';
     };
 
     const getPasswordStrengthColor = () => {
@@ -60,60 +45,116 @@ const Register = () => {
         return '#10b981';
     };
 
-    const validateForm = () => {
-        const newErrors = {};
-
-        if (!formData.fullName) {
-            newErrors.fullName = 'Họ tên không được để trống';
+    const syncConfirmPasswordValidity = (password, confirmPassword) => {
+        const confirmInput = formRef.current?.elements?.confirmPassword;
+        if (!confirmInput) {
+            return;
         }
 
-        if (!formData.email) {
-            newErrors.email = 'Email không được để trống';
-        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            newErrors.email = 'Email không hợp lệ';
+        if (!confirmPassword) {
+            confirmInput.setCustomValidity('');
+            return;
         }
 
-        if (!formData.phone) {
-            newErrors.phone = 'Số điện thoại không được để trống';
-        } else if (!/^[0-9]{10,11}$/.test(formData.phone)) {
-            newErrors.phone = 'Số điện thoại phải có 10-11 chữ số';
-        }
-
-        if (!formData.password) {
-            newErrors.password = 'Mật khẩu không được để trống';
-        } else if (formData.password.length < 6) {
-            newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
-        }
-
-        if (!formData.confirmPassword) {
-            newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu';
-        } else if (formData.password !== formData.confirmPassword) {
-            newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp';
-        }
-
-        if (!formData.agreeTerms) {
-            newErrors.agreeTerms = 'Bạn phải đồng ý với điều khoản sử dụng';
-        }
-
-        return newErrors;
+        confirmInput.setCustomValidity(
+            password === confirmPassword ? '' : 'Passwords do not match.'
+        );
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const setValidationMessage = (target) => {
+        const { name, validity } = target;
+        let message = '';
 
-        const newErrors = validateForm();
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
+        if (validity.customError) {
+            return;
+        }
+
+        if (validity.valueMissing) {
+            switch (name) {
+                case 'fullName':
+                    message = 'Please enter your full name.';
+                    break;
+                case 'email':
+                    message = 'Please enter your email.';
+                    break;
+                case 'phone':
+                    message = 'Please enter your phone number.';
+                    break;
+                case 'password':
+                    message = 'Please enter your password.';
+                    break;
+                case 'confirmPassword':
+                    message = 'Please confirm your password.';
+                    break;
+                case 'agreeTerms':
+                    message = 'Please accept the terms to continue.';
+                    break;
+                default:
+                    break;
+            }
+        } else if (validity.typeMismatch && name === 'email') {
+            message = 'Please enter a valid email address.';
+        } else if (validity.patternMismatch && name === 'phone') {
+            message = 'Phone number must contain 10 or 11 digits.';
+        } else if (validity.tooShort && name === 'password') {
+            message = 'Password must be at least 6 characters.';
+        }
+
+        target.setCustomValidity(message);
+    };
+
+    const showServerFieldError = (fieldName, message) => {
+        const target = formRef.current?.elements?.[fieldName];
+        if (!target) {
+            setGeneralError(message);
+            return;
+        }
+
+        target.setCustomValidity(message);
+        target.reportValidity();
+    };
+
+    const handleChange = (event) => {
+        const { name, value, type, checked } = event.target;
+        const nextValue = type === 'checkbox' ? checked : value;
+
+        event.target.setCustomValidity('');
+        setGeneralError('');
+
+        setFormData((prev) => {
+            const nextFormData = {
+                ...prev,
+                [name]: nextValue
+            };
+
+            if (name === 'password') {
+                calculatePasswordStrength(value);
+                syncConfirmPasswordValidity(value, prev.confirmPassword);
+            }
+
+            if (name === 'confirmPassword') {
+                syncConfirmPasswordValidity(prev.password, value);
+            }
+
+            return nextFormData;
+        });
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+
+        syncConfirmPasswordValidity(formData.password, formData.confirmPassword);
+        if (!form.checkValidity()) {
+            form.reportValidity();
             return;
         }
 
         setIsLoading(true);
+        setGeneralError('');
 
         try {
-            // Import the register API function
             const { register } = await import('../api/authApi');
-
-            // Call backend API
             const response = await register({
                 fullName: formData.fullName,
                 email: formData.email,
@@ -121,68 +162,67 @@ const Register = () => {
                 password: formData.password
             });
 
-            // Store user data in localStorage
-            localStorage.setItem('token', response.token);
-            localStorage.setItem('role', response.role);
-            localStorage.setItem('email', response.email);
-            localStorage.setItem('fullName', response.fullName || '');
-
-            // Role-based redirection
-            switch (response.role) {
-                case 'ADMIN':
-                    navigate('/admin/dashboard');
-                    break;
-                case 'BUSINESS_OWNER':
-                    navigate('/owner/dashboard');
-                    break;
-                case 'STAFF':
-                case 'CASHIER':
-                    navigate('/staff/dashboard');
-                    break;
-                default:
-                    navigate('/');
-            }
-        } catch (error) {
-            setErrors({
-                general: error.message || 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.'
+            sessionStorage.setItem('pendingRegisterEmail', response.email || formData.email);
+            navigate('/register/verify', {
+                state: {
+                    email: response.email || formData.email,
+                    expiresAt: response.expiresAt,
+                    expiresInSeconds: response.expiresInSeconds,
+                    message: response.message
+                }
             });
+        } catch (error) {
+            const message = error.message || 'Registration failed. Please check your information.';
+
+            if (message.includes('Email already exists')) {
+                showServerFieldError('email', 'This email is already in use.');
+                return;
+            }
+
+            if (message.includes('Phone already exists')) {
+                showServerFieldError('phone', 'This phone number is already in use.');
+                return;
+            }
+
+            if (message.includes('Email and phone are already associated')) {
+                showServerFieldError('email', 'This email is already in use.');
+                showServerFieldError('phone', 'This phone number is already in use.');
+                return;
+            }
+
+            setGeneralError(message);
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="register-page">
-            <div className="register-background">
-                <div className="register-gradient"></div>
-                <div className="register-shapes">
-                    <div className="shape shape-1"></div>
-                    <div className="shape shape-2"></div>
-                    <div className="shape shape-3"></div>
-                </div>
-            </div>
+        <div className="register-page auth-page">
+            <Link to="/" className="auth-brand-link" aria-label="Back to SmartBiz home">
+                <span className="auth-brand-icon">📊</span>
+                <span className="auth-brand-text">SmartBiz</span>
+            </Link>
 
-            <div className="register-container">
-                <div className="register-card scale-in">
-                    <div className="register-header">
-                        <h1 className="register-title">Đăng ký</h1>
-                        <p className="register-subtitle">Tạo tài khoản mới để bắt đầu sử dụng SmartBiz</p>
+            <div className="auth-card auth-card-register">
+                <section className="auth-form-panel">
+                    <div className="register-header auth-header">
+                        <h1 className="register-title auth-title">Registration</h1>
                     </div>
 
-                    {errors.general && (
-                        <div className="error-message">
-                            {errors.general}
+                    {generalError && (
+                        <div className="auth-error-message">
+                            {generalError}
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="register-form">
+                    <form ref={formRef} onSubmit={handleSubmit} className="register-form auth-form">
                         <Input
-                            label="Họ và tên"
+                            label="Full name"
                             type="text"
                             name="fullName"
                             value={formData.fullName}
                             onChange={handleChange}
-                            error={errors.fullName}
+                            onInvalid={(event) => setValidationMessage(event.target)}
                             icon="👤"
                             required
                         />
@@ -193,30 +233,32 @@ const Register = () => {
                             name="email"
                             value={formData.email}
                             onChange={handleChange}
-                            error={errors.email}
-                            icon="📧"
+                            onInvalid={(event) => setValidationMessage(event.target)}
+                            icon="✉"
                             required
                         />
 
                         <Input
-                            label="Số điện thoại"
+                            label="Phone number"
                             type="tel"
                             name="phone"
                             value={formData.phone}
                             onChange={handleChange}
-                            error={errors.phone}
-                            icon="📱"
+                            onInvalid={(event) => setValidationMessage(event.target)}
+                            pattern="[0-9]{10,11}"
+                            icon="☎"
                             required
                         />
 
                         <div>
                             <Input
-                                label="Mật khẩu"
+                                label="Password"
                                 type="password"
                                 name="password"
                                 value={formData.password}
                                 onChange={handleChange}
-                                error={errors.password}
+                                onInvalid={(event) => setValidationMessage(event.target)}
+                                minLength={6}
                                 icon="🔒"
                                 required
                             />
@@ -242,12 +284,12 @@ const Register = () => {
                         </div>
 
                         <Input
-                            label="Xác nhận mật khẩu"
+                            label="Confirm password"
                             type="password"
                             name="confirmPassword"
                             value={formData.confirmPassword}
                             onChange={handleChange}
-                            error={errors.confirmPassword}
+                            onInvalid={(event) => setValidationMessage(event.target)}
                             icon="🔒"
                             required
                         />
@@ -259,12 +301,13 @@ const Register = () => {
                                     name="agreeTerms"
                                     checked={formData.agreeTerms}
                                     onChange={handleChange}
+                                    onInvalid={(event) => setValidationMessage(event.target)}
+                                    required
                                 />
                                 <span>
-                                    Tôi đồng ý với <a href="#">Điều khoản sử dụng</a> và <a href="#">Chính sách bảo mật</a>
+                                    I agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>
                                 </span>
                             </label>
-                            {errors.agreeTerms && <span className="error-text">{errors.agreeTerms}</span>}
                         </div>
 
                         <Button
@@ -272,30 +315,31 @@ const Register = () => {
                             fullWidth
                             size="large"
                             disabled={isLoading}
+                            className="auth-submit-btn"
                         >
-                            {isLoading ? 'Đang đăng ký...' : 'Đăng ký'}
+                            {isLoading ? 'Creating account...' : 'Register'}
                         </Button>
                     </form>
 
-                    <div className="register-divider">
-                        <span>hoặc</span>
+                    <div className="register-divider auth-divider">
+                        <span>or continue with</span>
                     </div>
 
-                    <div className="social-register">
-                        <a href="http://localhost:8080/oauth2/authorization/google" className="social-btn">
-                            🔵 Google
+                    <div className="social-register auth-socials">
+                        <a href={GOOGLE_AUTH_URL} className="google-auth-btn" aria-label="Continue with Google">
+                            <span className="google-auth-icon">G</span>
+                            <span>Continue with Google</span>
                         </a>
-                        <button className="social-btn">
-                            <span>📘</span> Facebook
-                        </button>
                     </div>
+                </section>
 
-                    <div className="register-footer">
-                        <p>
-                            Đã có tài khoản? <Link to="/login">Đăng nhập ngay</Link>
-                        </p>
+                <section className="auth-welcome-panel auth-welcome-right" aria-label="Login">
+                    <div className="auth-welcome-content">
+                        <h2>Welcome Back!</h2>
+                        <p>Already have an account?</p>
+                        <Link to="/login" className="auth-outline-link">Login</Link>
                     </div>
-                </div>
+                </section>
             </div>
         </div>
     );

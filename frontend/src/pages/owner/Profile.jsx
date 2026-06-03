@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import './Profile.css';
 
@@ -20,11 +20,7 @@ const Profile = () => {
     const token = localStorage.getItem('token');
     const apiBaseUrl = 'http://localhost:8080/auth';
 
-    useEffect(() => {
-        fetchProfile();
-    }, []);
-
-    const fetchProfile = async () => {
+    const fetchProfile = useCallback(async () => {
         try {
             const response = await axios.get(`${apiBaseUrl}/me`, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -36,7 +32,11 @@ const Profile = () => {
             setMessage({ type: 'error', text: 'Failed to load profile data' });
             setLoading(false);
         }
-    };
+    }, [apiBaseUrl, token]);
+
+    useEffect(() => {
+        fetchProfile();
+    }, [fetchProfile]);
 
     const handleProfileChange = (e) => {
         setProfile({ ...profile, [e.target.name]: e.target.value });

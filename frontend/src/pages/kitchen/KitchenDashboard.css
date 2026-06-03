@@ -136,3 +136,55 @@
         padding: 1rem;
     }
 }
+
+/* Keep role header buttons in one horizontal row on every viewport. */
+.kitchen-header {
+    gap: 20px;
+    flex-wrap: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.kitchen-header .header-brand,
+.kitchen-header .header-actions {
+    flex: 0 0 auto;
+}
+
+.kitchen-header .header-brand h1 {
+    white-space: nowrap;
+}
+
+.kitchen-header .header-nav {
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    scrollbar-width: thin;
+}
+
+.kitchen-header .nav-item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .kitchen-header {
+        flex-wrap: nowrap;
+        gap: 12px;
+    }
+
+    .kitchen-header .mobile-menu-toggle {
+        display: none;
+    }
+
+    .kitchen-header .header-nav,
+    .kitchen-header .header-nav.mobile-open {
+        display: flex;
+        flex-direction: row;
+        width: auto;
+        margin-top: 0;
+    }
+}
