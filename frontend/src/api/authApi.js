@@ -103,6 +103,21 @@ export const getCurrentUser = async () => {
     return response.json();
 };
 
+export const completeOnboarding = async (payload) => {
+    const response = await fetch(`${API_BASE_URL}/auth/complete-onboarding`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Không thể hoàn tất thiết lập tài khoản');
+    }
+
+    return response.json();
+};
+
 // Logout user
 export const logout = async () => {
     const response = await fetch(`${API_BASE_URL}/auth/logout`, {

@@ -1,0 +1,949 @@
+/* Global responsive hardening for desktop-first screens. */
+html {
+  font-size: 16px;
+}
+
+body {
+  min-width: 320px;
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  max-width: 100%;
+}
+
+.App {
+  min-width: 0;
+}
+
+.content-area,
+.main-content,
+.cashier-main-content,
+.staff-main-content,
+.kitchen-main-content,
+.owner-workspace,
+.owner-workspace__content {
+  min-width: 0;
+}
+
+.owner-workspace,
+.cashier-main-content,
+.staff-main-content,
+.kitchen-main-content {
+  width: 100%;
+}
+
+.owner-stores,
+.owner-staff,
+.owner-reports,
+.owner-inventory,
+.owner-qr-payment,
+.inventory-tab,
+.owner-categories,
+.store-detail,
+.profile-container,
+.schedule-page,
+.shift-calendar-container,
+.cashier-orders,
+.cashier-tables,
+.cashier-payment,
+.cashier-schedule,
+.cashier-dashboard-home,
+.staff-orders,
+.staff-tables,
+.staff-schedule,
+.staff-profile,
+.staff-dashboard-home,
+.kitchen-orders,
+.kitchen-dashboard-home,
+.admin-dashboard-home,
+.admin-users,
+.admin-stores,
+.admin-categories {
+  width: 100%;
+  min-width: 0;
+}
+
+.stores-table-container,
+.users-table-container,
+.categories-table-container,
+.products-table,
+.stores-table,
+.staff-table,
+.staff-tab .staff-table,
+.owner-staff .staff-table,
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  max-width: 100%;
+}
+
+.stores-table-container table,
+.users-table-container table,
+.categories-table-container table,
+.products-table table,
+.stores-table table,
+.staff-table table,
+.staff-tab .staff-table table,
+.owner-staff .staff-table table {
+  min-width: 680px;
+}
+
+.page-header,
+.stores-header,
+.users-header,
+.categories-header,
+.tab-header,
+.inventory-header,
+.qr-header,
+.payment-header,
+.orders-header,
+.tables-header,
+.schedule-header {
+  min-width: 0;
+}
+
+.page-header > *,
+.stores-header > *,
+.users-header > *,
+.categories-header > *,
+.tab-header > *,
+.inventory-header > *,
+.qr-header > *,
+.payment-header > *,
+.orders-header > *,
+.tables-header > *,
+.schedule-header > * {
+  min-width: 0;
+}
+
+.page-header h1,
+.stores-header h1,
+.users-header h1,
+.categories-header h1,
+.tab-header h2,
+.calendar-header h2,
+.store-info h1 {
+  overflow-wrap: anywhere;
+}
+
+.header-buttons,
+.action-buttons,
+.form-actions,
+.modal-actions,
+.export-buttons,
+.filter-buttons,
+.filter-tabs,
+.status-buttons,
+.order-actions,
+.controls-section,
+.report-filters,
+.calendar-filters {
+  min-width: 0;
+}
+
+.stores-grid,
+.staff-grid,
+.tables-grid,
+.inventory-grid,
+.categories-grid,
+.orders-list,
+.stats-grid,
+.features-grid,
+.revenue-cards,
+.profile-grid {
+  min-width: 0;
+}
+
+.store-card,
+.staff-card,
+.table-card,
+.inventory-card,
+.category-card,
+.order-card,
+.revenue-card,
+.profile-card,
+.stat-card,
+.feature-card {
+  min-width: 0;
+}
+
+.modal-overlay {
+  padding: 16px;
+}
+
+.modal-content,
+.modal-large {
+  width: min(100%, 720px);
+  max-height: calc(100dvh - 32px);
+}
+
+.modal-header,
+.modal-footer {
+  gap: 12px;
+}
+
+.modal-body {
+  min-width: 0;
+}
+
+@media (max-width: 1180px) {
+  .admin-top-header,
+  .cashier-header,
+  .staff-header,
+  .kitchen-header {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+
+  .admin-top-header .nav-item,
+  .cashier-header .nav-item,
+  .staff-header .nav-item,
+  .kitchen-header .nav-item {
+    padding: 9px 12px !important;
+    gap: 6px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-top-header,
+  .cashier-header,
+  .staff-header,
+  .kitchen-header {
+    height: auto !important;
+    min-height: 64px;
+    gap: 10px !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+    flex-wrap: wrap !important;
+    overflow: visible !important;
+  }
+
+  .admin-top-header .header-brand,
+  .cashier-header .header-brand,
+  .staff-header .header-brand,
+  .kitchen-header .header-brand {
+    flex: 1 1 auto !important;
+    min-width: 160px;
+  }
+
+  .admin-top-header .header-brand h1,
+  .cashier-header .header-brand h1,
+  .staff-header .header-brand h1,
+  .kitchen-header .header-brand h1 {
+    font-size: 18px !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .admin-top-header .header-actions,
+  .cashier-header .header-actions,
+  .staff-header .header-actions,
+  .kitchen-header .header-actions {
+    gap: 8px !important;
+  }
+
+  .admin-top-header .header-nav,
+  .cashier-header .header-nav,
+  .staff-header .header-nav,
+  .kitchen-header .header-nav {
+    flex: 1 0 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    order: 3 !important;
+    padding-top: 8px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.14) !important;
+  }
+
+  .admin-top-header .user-info,
+  .cashier-header .user-info,
+  .staff-header .user-info,
+  .kitchen-header .user-info {
+    display: none !important;
+  }
+
+  .admin-top-header .logout-btn,
+  .cashier-header .logout-btn,
+  .staff-header .logout-btn,
+  .kitchen-header .logout-btn {
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+  }
+
+  .content-area {
+    min-height: auto;
+  }
+
+  .owner-topbar {
+    height: auto;
+    min-height: 68px;
+    padding: 12px 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .owner-topbar__brand {
+    flex: 1 1 auto;
+  }
+
+  .owner-topbar__actions {
+    flex: 0 0 auto;
+  }
+
+  .owner-mobile-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .owner-workspace,
+  .staff-main-content,
+  .kitchen-main-content {
+    padding: 20px 16px 28px;
+  }
+
+  .store-detail,
+  .owner-reports,
+  .owner-staff,
+  .owner-stores,
+  .owner-inventory,
+  .owner-qr-payment,
+  .profile-container,
+  .schedule-page,
+  .cashier-orders,
+  .cashier-tables,
+  .cashier-payment,
+  .cashier-schedule,
+  .staff-orders,
+  .staff-tables,
+  .staff-schedule,
+  .staff-profile,
+  .kitchen-orders,
+  .admin-users,
+  .admin-stores,
+  .admin-categories {
+    padding: 20px !important;
+  }
+
+  .page-header,
+  .stores-header,
+  .users-header,
+  .categories-header,
+  .tab-header,
+  .calendar-header,
+  .store-header,
+  .inventory-header,
+  .qr-header,
+  .payment-header,
+  .orders-header,
+  .tables-header,
+  .schedule-header {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+  }
+
+  .header-buttons,
+  .export-buttons,
+  .action-buttons,
+  .filter-buttons,
+  .filter-tabs,
+  .status-buttons,
+  .controls-section,
+  .report-filters,
+  .calendar-filters {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .search-bar,
+  .search-box,
+  .search-input,
+  .filter-group,
+  .filter-group select,
+  .staff-filter {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .revenue-cards,
+  .profile-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .stats-grid,
+  .features-grid,
+  .stores-grid,
+  .staff-grid,
+  .tables-grid,
+  .inventory-grid,
+  .categories-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)) !important;
+  }
+
+  .tabs-header {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab-btn {
+    flex: 0 0 auto;
+    min-width: 150px;
+  }
+
+  .tab-content,
+  .report-section {
+    padding: 20px !important;
+  }
+}
+
+@media (max-width: 650px) {
+  body {
+    line-height: 1.5;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  h2 {
+    font-size: 1.6rem;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+  }
+
+  .container,
+  .container-fluid {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .owner-workspace,
+  .staff-main-content,
+  .kitchen-main-content {
+    padding: 16px 12px 24px;
+  }
+
+  .store-detail,
+  .owner-reports,
+  .owner-staff,
+  .owner-stores,
+  .owner-inventory,
+  .owner-qr-payment,
+  .profile-container,
+  .schedule-page,
+  .cashier-orders,
+  .cashier-tables,
+  .cashier-payment,
+  .cashier-schedule,
+  .staff-orders,
+  .staff-tables,
+  .staff-schedule,
+  .staff-profile,
+  .kitchen-orders,
+  .admin-users,
+  .admin-stores,
+  .admin-categories {
+    padding: 16px 12px !important;
+  }
+
+  .owner-topbar__brand-copy h1,
+  .page-header h1,
+  .stores-header h1,
+  .users-header h1,
+  .categories-header h1,
+  .calendar-header h2,
+  .store-info h1 {
+    font-size: 22px !important;
+  }
+
+  .owner-topbar__notice,
+  .owner-topbar__user-meta,
+  .owner-topbar__caret {
+    display: none !important;
+  }
+
+  .owner-topbar__user-trigger {
+    padding: 6px;
+    border-radius: 12px;
+  }
+
+  .owner-topbar__avatar {
+    width: 34px;
+    height: 34px;
+  }
+
+  .owner-mobile-nav {
+    grid-template-columns: 1fr;
+    padding: 10px 12px 0;
+  }
+
+  .owner-workspace__intro,
+  .owner-workspace__section-copy {
+    gap: 12px;
+  }
+
+  .owner-workspace__accent {
+    width: 52px;
+    height: 6px;
+  }
+
+  .admin-top-header .header-nav,
+  .cashier-header .header-nav,
+  .staff-header .header-nav,
+  .kitchen-header .header-nav {
+    gap: 6px !important;
+    padding-bottom: 2px !important;
+  }
+
+  .admin-top-header .nav-item,
+  .cashier-header .nav-item,
+  .staff-header .nav-item,
+  .kitchen-header .nav-item {
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+  }
+
+  .admin-top-header .nav-icon,
+  .cashier-header .nav-icon,
+  .staff-header .nav-icon,
+  .kitchen-header .nav-icon {
+    font-size: 16px !important;
+  }
+
+  .admin-top-header .logout-btn,
+  .cashier-header .logout-btn,
+  .staff-header .logout-btn,
+  .kitchen-header .logout-btn {
+    max-width: 116px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .auth-page {
+    min-height: 100dvh;
+    padding: 72px 12px 16px;
+    align-items: flex-start;
+  }
+
+  .auth-brand-link {
+    position: absolute;
+    top: 18px;
+    left: 16px;
+    font-size: 1.1rem;
+  }
+
+  .auth-card,
+  .login-page .auth-card,
+  .register-page .auth-card {
+    height: auto !important;
+    min-height: 0 !important;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    border-radius: 18px;
+  }
+
+  .auth-card::before,
+  .login-page .auth-card::before,
+  .register-page .auth-card::before {
+    display: none !important;
+    content: none !important;
+  }
+
+  .auth-welcome-panel,
+  .login-page .auth-welcome-panel,
+  .register-page .auth-welcome-panel,
+  .auth-form-panel,
+  .login-page .auth-form-panel,
+  .register-page .auth-form-panel {
+    position: static;
+    width: 100%;
+    height: auto;
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .auth-welcome-panel,
+  .login-page .auth-welcome-panel,
+  .register-page .auth-welcome-panel {
+    min-height: 170px;
+    padding: 26px 20px;
+    background: var(--gradient-primary);
+    border-radius: 18px 18px 0 0;
+  }
+
+  .auth-form-panel,
+  .login-page .auth-form-panel,
+  .register-page .auth-form-panel {
+    padding: 24px 18px;
+  }
+
+  .auth-welcome-content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    opacity: 1;
+    animation: none;
+    text-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+  }
+
+  .auth-welcome-content h2,
+  .auth-welcome-content p,
+  .auth-welcome-content a {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  .register-page .auth-welcome-panel {
+    display: none !important;
+  }
+
+  .auth-title {
+    font-size: 1.8rem !important;
+  }
+
+  .login-options,
+  .password-strength {
+    flex-wrap: wrap;
+  }
+
+  .google-auth-btn,
+  .auth-submit-btn.btn-large {
+    min-height: 46px;
+  }
+
+  .hero-section {
+    min-height: 88vh;
+    padding-top: 70px;
+  }
+
+  .hero-content,
+  .hero-title,
+  .cta-content,
+  .cta-title {
+    color: #ffffff !important;
+  }
+
+  .hero-title {
+    font-size: 2.25rem !important;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .hero-buttons,
+  .export-buttons,
+  .form-actions,
+  .modal-actions,
+  .order-actions,
+  .status-buttons {
+    flex-direction: column;
+  }
+
+  .hero-buttons > *,
+  .export-buttons > *,
+  .form-actions > *,
+  .modal-actions > *,
+  .order-actions > *,
+  .status-buttons > * {
+    width: 100%;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .section-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-bottom: 28px !important;
+    text-align: center !important;
+  }
+
+  .section-title,
+  .section-subtitle {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .section-title {
+    font-size: 1.85rem !important;
+    margin-bottom: 0 !important;
+  }
+
+  .section-subtitle {
+    font-size: 0.95rem !important;
+  }
+
+  .stat-card,
+  .feature-card,
+  .revenue-card,
+  .report-section,
+  .tabs-container,
+  .profile-card,
+  .calendar-header,
+  .staff-legend,
+  .rbc-calendar {
+    border-radius: 12px !important;
+  }
+
+  .revenue-card {
+    padding: 18px;
+  }
+
+  .card-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 28px;
+    flex: 0 0 auto;
+  }
+
+  .tab-content,
+  .report-section,
+  .modal-body,
+  .modal-header,
+  .modal-footer {
+    padding: 16px !important;
+  }
+
+  .tabs-header {
+    flex-direction: row !important;
+  }
+
+  .tab-btn {
+    min-width: max-content;
+    padding: 13px 16px;
+    font-size: 14px;
+  }
+
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 8px;
+  }
+
+  .modal-content,
+  .modal-large {
+    width: 100% !important;
+    max-height: calc(100dvh - 16px);
+    border-radius: 16px 16px 10px 10px !important;
+  }
+
+  .modal-header h2 {
+    font-size: 20px;
+  }
+
+  .detail-row,
+  .info-row,
+  .order-header,
+  .item-details,
+  .detail-item-row,
+  .order-total,
+  .order-total-row {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .calendar-header,
+  .staff-legend {
+    padding: 14px !important;
+  }
+
+  .shift-calendar-container {
+    padding: 12px !important;
+    min-height: auto;
+  }
+
+  .rbc-toolbar {
+    align-items: stretch !important;
+    padding: 12px !important;
+  }
+
+  .rbc-btn-group {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .rbc-toolbar button {
+    min-width: 74px !important;
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+  }
+
+  .rbc-toolbar-label {
+    width: 100%;
+    min-width: 0 !important;
+    font-size: 16px !important;
+  }
+
+  .rbc-header {
+    font-size: 11px;
+    padding: 8px 2px;
+  }
+
+  .rbc-event {
+    padding: 2px 4px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 760px) {
+  .order-management {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  .order-management-header {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .order-management-header h2 {
+    font-size: 19px;
+    overflow-wrap: anywhere;
+  }
+
+  .order-management-body {
+    display: flex !important;
+    flex-direction: column;
+    height: calc(100dvh - 68px);
+    gap: 14px;
+    padding: 14px;
+    overflow-y: auto;
+  }
+
+  .menu-section,
+  .order-section {
+    overflow: visible;
+  }
+
+  .menu-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .menu-items-grid {
+    grid-template-columns: 1fr !important;
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .menu-item-card,
+  .order-section {
+    border-radius: 10px;
+  }
+
+  .order-items-list {
+    max-height: 42vh;
+  }
+}
+
+@media (max-width: 430px) {
+  .admin-top-header,
+  .cashier-header,
+  .staff-header,
+  .kitchen-header {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .admin-top-header .header-brand,
+  .cashier-header .header-brand,
+  .staff-header .header-brand,
+  .kitchen-header .header-brand {
+    min-width: 120px;
+  }
+
+  .admin-top-header .header-brand h1,
+  .cashier-header .header-brand h1,
+  .staff-header .header-brand h1,
+  .kitchen-header .header-brand h1 {
+    font-size: 16px !important;
+  }
+
+  .admin-top-header .nav-item,
+  .cashier-header .nav-item,
+  .staff-header .nav-item,
+  .kitchen-header .nav-item {
+    padding: 7px 9px !important;
+  }
+
+  .owner-topbar {
+    padding: 10px 12px;
+  }
+
+  .owner-topbar__brand-copy h1,
+  .page-header h1,
+  .stores-header h1,
+  .users-header h1,
+  .categories-header h1,
+  .calendar-header h2,
+  .store-info h1 {
+    font-size: 20px !important;
+  }
+
+  .store-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .edit-store-btn,
+  .back-btn,
+  .refresh-btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-warning,
+  .btn-success,
+  .btn-danger,
+  .btn-view,
+  .btn-toggle,
+  .btn-delete,
+  .btn-cancel,
+  .btn-confirm,
+  .btn-payment {
+    min-height: 40px;
+  }
+
+  .filter-btn,
+  .filter-tab,
+  .category-tab {
+    flex: 1 0 auto;
+  }
+
+  .revenue-card,
+  .menu-item-card,
+  .order-item-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .item-controls {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .item-subtotal {
+    margin-left: 0;
+  }
+}

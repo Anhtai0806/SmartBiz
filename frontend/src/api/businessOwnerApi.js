@@ -52,6 +52,11 @@ export const getStoreStaff = async (storeId) => {
     return response.data;
 };
 
+export const getAllStaff = async () => {
+    const response = await api.get('/staff');
+    return response.data;
+};
+
 export const createStaff = async (staffData) => {
     const response = await api.post('/staff', staffData);
     return response.data;
@@ -242,6 +247,26 @@ export const deleteShift = async (shiftId) => {
     return response.data;
 };
 
+export const getShiftTemplates = async (storeId) => {
+    const response = await api.get(`/stores/${storeId}/shift-templates`);
+    return response.data;
+};
+
+export const createShiftTemplate = async (storeId, templateData) => {
+    const response = await api.post(`/stores/${storeId}/shift-templates`, templateData);
+    return response.data;
+};
+
+export const updateShiftTemplate = async (shiftId, templateData) => {
+    const response = await api.put(`/shift-templates/${shiftId}`, templateData);
+    return response.data;
+};
+
+export const deleteShiftTemplate = async (shiftId) => {
+    const response = await api.delete(`/shift-templates/${shiftId}`);
+    return response.data;
+};
+
 // Reports
 // Reports
 export const getRevenueReport = async (startDate, endDate, storeId) => {
@@ -295,6 +320,7 @@ const businessOwnerApi = {
     createStore,
     getStoreDetails,
     getStoreStaff,
+    getAllStaff,
     createStaff,
     assignStaffToStore,
     removeStaffFromStore,
@@ -307,6 +333,10 @@ const businessOwnerApi = {
     createShift,
     updateShift,
     deleteShift,
+    getShiftTemplates,
+    createShiftTemplate,
+    updateShiftTemplate,
+    deleteShiftTemplate,
     updateStaff
 };
 

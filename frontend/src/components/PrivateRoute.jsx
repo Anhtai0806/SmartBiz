@@ -20,6 +20,8 @@ const PrivateRoute = ({ children, requiredRole }) => {
         localStorage.setItem('email', params.get('email') || '');
         localStorage.setItem('userId', params.get('userId') || '');
         localStorage.setItem('fullName', params.get('fullName') || '');
+        localStorage.setItem('storeName', params.get('storeName') || '');
+        localStorage.setItem('onboardingCompleted', params.get('onboardingCompleted') || 'true');
 
         const storeId = params.get('storeId');
         if (storeId && storeId !== 'null') {

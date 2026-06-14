@@ -59,11 +59,11 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
                         @Param("start") LocalDateTime start,
                         @Param("end") LocalDateTime end);
 
-        @Query("SELECT i.order.table.store.id, i.order.table.store.name, SUM(i.totalAmount), COUNT(i) " +
+        @Query("SELECT i.order.table.store.id, i.order.table.store.owner.storeName, SUM(i.totalAmount), COUNT(i) " +
                         "FROM Invoice i " +
                         "WHERE i.order.table.store.owner.id = :ownerId " +
                         "AND i.createdAt BETWEEN :start AND :end " +
-                        "GROUP BY i.order.table.store.id, i.order.table.store.name")
+                        "GROUP BY i.order.table.store.id, i.order.table.store.owner.storeName")
         List<Object[]> getStoreComparisonByOwnerId(
                         @Param("ownerId") java.util.UUID ownerId,
                         @Param("start") LocalDateTime start,

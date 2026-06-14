@@ -19,6 +19,8 @@ public class ShiftRequest {
     @NotNull(message = "User ID is required")
     private UUID userId;
 
+    private Long workShiftId;
+
     @NotNull(message = "Shift date is required")
     private LocalDate shiftDate;
 

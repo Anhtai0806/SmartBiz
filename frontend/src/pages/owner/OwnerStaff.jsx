@@ -1,282 +1,470 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Modal from '../../components/Modal';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import StatusBadge from '../../components/StatusBadge';
-import { createStaff, updateStaff, updateStaffStatus } from '../../api/businessOwnerApi';
+import {
+    createStaff,
+    getAllStaff,
+    getStores,
+    updateStaff,
+    updateStaffStatus
+} from '../../api/businessOwnerApi';
 import './OwnerStaff.css';
+
+const DEFAULT_FORM = {
+    email: '',
+    role: 'STAFF',
+    salaryType: 'MONTHLY',
+    salaryAmount: '',
+    storeId: ''
+};
+
+const ROLE_LABELS = {
+    STAFF: 'Nhân viên',
+    CASHIER: 'Thu ngân',
+    KITCHEN: 'Bếp'
+};
+
+const SALARY_LABELS = {
+    MONTHLY: 'Theo tháng',
+    HOURLY: 'Theo giờ',
+    DAILY: 'Theo ngày',
+    SHIFT: 'Theo ca'
+};
 
 const OwnerStaff = () => {
     const [staff, setStaff] = useState([]);
     const [stores, setStores] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterStoreId, setFilterStoreId] = useState('all');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingStaff, setEditingStaff] = useState(null);
-    const [formData, setFormData] = useState({
-        fullName: '',
-        email: '',
-        password: '',
-        phoneNumber: '',
-        role: 'STAFF',
-        salaryType: 'MONTHLY',
-        salaryAmount: '',
-        storeId: '',
-        isActive: true
-    });
-    const [searchTerm, setSearchTerm] = useState('');
+    const [formData, setFormData] = useState(DEFAULT_FORM);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const loadData = async () => {
+        setIsLoading(true);
+        setErrorMessage('');
+
+        try {
+            const [staffData, storesData] = await Promise.all([
+                getAllStaff(),
+                getStores()
+            ]);
+            setStaff(Array.isArray(staffData) ? staffData : []);
+            setStores(Array.isArray(storesData) ? storesData : []);
+        } catch (error) {
+            setErrorMessage(error.message || 'Không thể tải danh sách nhân viên.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        // TODO: Fetch staff and stores from backend API
-        setStores([
-            { id: 1, name: 'Chi nhánh Quận 1' },
-            { id: 2, name: 'Chi nhánh Quận 3' },
-            { id: 3, name: 'Chi nhánh Thủ Đức' }
-        ]);
-
-        setStaff([
-            { id: 1, fullName: 'Nguyễn Văn A', email: 'nva@example.com', phoneNumber: '0901111111', role: 'STAFF', storeName: 'Chi nhánh Quận 1', isActive: true },
-            { id: 2, fullName: 'Trần Thị B', email: 'ttb@example.com', phoneNumber: '0902222222', role: 'CASHIER', storeName: 'Chi nhánh Quận 1', isActive: true },
-            { id: 3, fullName: 'Lê Văn C', email: 'lvc@example.com', phoneNumber: '0903333333', role: 'STAFF', storeName: 'Chi nhánh Quận 3', isActive: false }
-        ]);
+        loadData();
     }, []);
 
+    const storeOptions = useMemo(() => {
+        return stores.map((store) => ({
+            id: store.id,
+            label: store.name || store.address || `Cửa hàng #${store.id}`
+        }));
+    }, [stores]);
+
+    const storeLookup = useMemo(() => {
+        return new Map(storeOptions.map((store) => [String(store.id), store.label]));
+    }, [storeOptions]);
+
     const handleOpenModal = (staffMember = null) => {
+        setErrorMessage('');
+
         if (staffMember) {
             setEditingStaff(staffMember);
-            setFormData({ ...staffMember, password: '' });
+            setFormData({
+                email: staffMember.email || '',
+                role: staffMember.role || 'STAFF',
+                salaryType: staffMember.salaryType || 'MONTHLY',
+                salaryAmount: staffMember.salaryAmount || '',
+                storeId: staffMember.storeId || ''
+            });
         } else {
             setEditingStaff(null);
             setFormData({
-                fullName: '',
-                email: '',
-                password: '',
-                phoneNumber: '',
-                role: 'STAFF',
-                salaryType: 'MONTHLY',
-                salaryAmount: '',
-                storeId: '',
-                isActive: true
+                ...DEFAULT_FORM,
+                storeId: storeOptions[0]?.id || ''
             });
         }
+
         setIsModalOpen(true);
     };
 
     const handleCloseModal = () => {
+        if (isSubmitting) {
+            return;
+        }
+
         setIsModalOpen(false);
         setEditingStaff(null);
+        setFormData(DEFAULT_FORM);
+        setErrorMessage('');
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        // TODO: Call backend API to create/update staff
+    const handleChange = (event) => {
+        const { name, value } = event.target;
+        setFormData((previousState) => ({
+            ...previousState,
+            [name]: value
+        }));
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        setIsSubmitting(true);
+        setErrorMessage('');
+
+        const payload = {
+            email: formData.email.trim(),
+            role: formData.role,
+            salaryType: formData.salaryType || null,
+            salaryAmount: formData.salaryAmount === '' ? null : Number(formData.salaryAmount),
+            storeId: Number(formData.storeId)
+        };
+
         try {
             if (editingStaff) {
-                await updateStaff(editingStaff.id, formData);
-                setStaff(staff.map(s => s.id === editingStaff.id ? { ...s, ...formData } : s));
+                await updateStaff(editingStaff.id, payload);
             } else {
-                const newStaff = await createStaff(formData);
-                setStaff([...staff, newStaff]);
+                await createStaff(payload);
             }
+
+            await loadData();
             handleCloseModal();
         } catch (error) {
-            console.error("Error saving staff:", error);
-            alert("Có lỗi xảy ra: " + (error.message || "Không xác định"));
+            setErrorMessage(error.message || 'Không thể lưu thông tin nhân viên.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
-    const handleToggleStatus = async (id) => {
-        // TODO: Call backend API to activate/deactivate staff
-        setStaff(staff.map(s => s.id === id ? { ...s, isActive: !s.isActive } : s));
-    };
+    const handleToggleStatus = async (staffMember) => {
+        const nextStatus = staffMember.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
 
-    const handleDelete = async (id) => {
-        if (window.confirm('Bạn có chắc chắn muốn xóa nhân viên này?')) {
-            // TODO: Call backend API to delete staff
-            setStaff(staff.filter(s => s.id !== id));
+        try {
+            await updateStaffStatus(staffMember.id, nextStatus);
+            await loadData();
+        } catch (error) {
+            alert(error.message || 'Không thể cập nhật trạng thái nhân viên.');
         }
     };
 
-    const filteredStaff = staff.filter(s =>
-        s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredStaff = useMemo(() => {
+        const keyword = searchTerm.trim().toLowerCase();
+
+        return staff.filter((staffMember) => {
+            const matchesStore = filterStoreId === 'all'
+                || String(staffMember.storeId || '') === String(filterStoreId);
+
+            if (!matchesStore) {
+                return false;
+            }
+
+            if (!keyword) {
+                return true;
+            }
+
+            const fields = [
+                staffMember.fullName || '',
+                staffMember.email || '',
+                staffMember.phone || '',
+                staffMember.storeAddress || '',
+                storeLookup.get(String(staffMember.storeId || '')) || '',
+                ROLE_LABELS[staffMember.role] || staffMember.role || '',
+                staffMember.generatedPassword || ''
+            ];
+
+            return fields.some((field) => field.toLowerCase().includes(keyword));
+        });
+    }, [filterStoreId, searchTerm, staff, storeLookup]);
+
+    const summary = useMemo(() => {
+        const total = filteredStaff.length;
+        const active = filteredStaff.filter((staffMember) => staffMember.status === 'ACTIVE').length;
+        const hourly = filteredStaff.filter((staffMember) => staffMember.salaryType === 'HOURLY').length;
+
+        return { total, active, hourly };
+    }, [filteredStaff]);
 
     return (
-        <div className="owner-staff">
-            <div className="page-header">
+        <div className="owner-staff-page">
+            <section className="owner-staff-page__header">
                 <div>
-                    <h1>Quản lý Nhân viên</h1>
-                    <p>Quản lý tài khoản nhân viên và phân công cửa hàng</p>
+                    <nav className="owner-staff-page__breadcrumb" aria-label="Điều hướng">
+                        <span>Dashboard</span>
+                        <span className="owner-staff-page__breadcrumb-separator">›</span>
+                        <span className="is-current">Nhân viên</span>
+                    </nav>
+                    <h1>Quản lý nhân viên</h1>
                 </div>
-                <Button onClick={() => handleOpenModal()}>
-                    ➕ Thêm nhân viên
-                </Button>
-            </div>
 
-            <div className="search-bar">
-                <Input
-                    type="text"
-                    placeholder="🔍 Tìm kiếm nhân viên..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
+                <div className="owner-staff-page__header-actions">
+                    <div className="owner-staff-toolbar">
+                        <div className="owner-staff-toolbar__search">
+                            <span className="owner-staff-toolbar__search-icon">⌕</span>
+                            <input
+                                type="text"
+                                placeholder="Tìm kiếm nhân viên..."
+                                value={searchTerm}
+                                onChange={(event) => setSearchTerm(event.target.value)}
+                            />
+                        </div>
 
-            <div className="staff-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Họ tên</th>
-                            <th>Email</th>
-                            <th>Số điện thoại</th>
-                            <th>Vai trò</th>
-                            <th>Mức lương</th>
-                            <th>Cửa hàng</th>
-                            <th>Trạng thái</th>
-                            <th>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredStaff.map(staffMember => (
-                            <tr key={staffMember.id}>
-                                <td className="staff-name">{staffMember.fullName}</td>
-                                <td>{staffMember.email}</td>
-                                <td>{staffMember.phoneNumber}</td>
-                                <td>
-                                    <span className={`role-badge ${staffMember.role.toLowerCase()}`}>
-                                        {staffMember.role === 'STAFF' ? 'Nhân viên' : 'Thu ngân'}
-                                    </span>
-                                </td>
-                                <td>
-                                    {staffMember.salaryAmount ? (
-                                        <span>
-                                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(staffMember.salaryAmount)}
-                                            <small className="text-muted">/{staffMember.salaryType === 'HOURLY' ? 'giờ' : 'tháng'}</small>
-                                        </span>
-                                    ) : (
-                                        <span className="text-muted">Chưa cập nhật</span>
-                                    )}
-                                </td>
-                                <td>{staffMember.storeName}</td>
-                                <td>
-                                    <StatusBadge status={staffMember.isActive ? 'active' : 'inactive'}>
-                                        {staffMember.isActive ? 'Hoạt động' : 'Ngừng hoạt động'}
-                                    </StatusBadge>
-                                </td>
-                                <td className="actions">
-                                    <button
-                                        className="btn-edit"
-                                        onClick={() => handleOpenModal(staffMember)}
-                                        title="Chỉnh sửa"
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        className="btn-toggle"
-                                        onClick={() => handleToggleStatus(staffMember.id)}
-                                        title={staffMember.isActive ? 'Vô hiệu hóa' : 'Kích hoạt'}
-                                    >
-                                        {staffMember.isActive ? '🔴' : '🟢'}
-                                    </button>
-                                    <button
-                                        className="btn-delete"
-                                        onClick={() => handleDelete(staffMember.id)}
-                                        title="Xóa"
-                                    >
-                                        🗑️
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-
-                {filteredStaff.length === 0 && (
-                    <div className="empty-state">
-                        <p>Không tìm thấy nhân viên nào</p>
+                        <div className="owner-staff-toolbar__select">
+                            <select
+                                value={filterStoreId}
+                                onChange={(event) => setFilterStoreId(event.target.value)}
+                            >
+                                <option value="all">Tất cả cửa hàng</option>
+                                {storeOptions.map((store) => (
+                                    <option key={store.id} value={store.id}>
+                                        {store.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <span className="owner-staff-toolbar__select-caret">▾</span>
+                        </div>
                     </div>
-                )}
-            </div>
 
-            <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingStaff ? 'Chỉnh sửa nhân viên' : 'Thêm nhân viên mới'}>
-                <form onSubmit={handleSubmit} className="staff-form">
-                    <Input
-                        label="Họ tên"
-                        type="text"
-                        value={formData.fullName}
-                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                        required
-                    />
+                    <Button onClick={() => handleOpenModal()}>
+                        Thêm nhân viên
+                    </Button>
+                </div>
+            </section>
+
+            <section className="owner-staff-summary">
+                <div className="owner-staff-summary__card">
+                    <span>Tổng nhân viên đang hiển thị</span>
+                    <strong>{summary.total}</strong>
+                </div>
+                <div className="owner-staff-summary__card">
+                    <span>Đang hoạt động</span>
+                    <strong>{summary.active}</strong>
+                </div>
+                <div className="owner-staff-summary__card">
+                    <span>Trả lương theo giờ</span>
+                    <strong>{summary.hourly}</strong>
+                </div>
+            </section>
+
+            {isLoading ? (
+                <div className="owner-staff-empty">
+                    <p>Đang tải danh sách nhân viên...</p>
+                </div>
+            ) : errorMessage ? (
+                <div className="owner-staff-empty owner-staff-empty--error">
+                    <p>{errorMessage}</p>
+                </div>
+            ) : (
+                <section className="owner-staff-table-card">
+                    <div className="owner-staff-table-card__inner">
+                        <table className="owner-staff-table">
+                            <thead>
+                                <tr>
+                                    <th>Họ tên</th>
+                                    <th>Số điện thoại</th>
+                                    <th>Vai trò</th>
+                                    <th>Hình thức lương</th>
+                                    <th className="is-right">Mức lương</th>
+                                    <th>Cửa hàng</th>
+                                    <th className="is-center">Trạng thái</th>
+                                    <th>Mật khẩu</th>
+                                    <th className="is-right">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredStaff.map((staffMember) => (
+                                    <tr key={staffMember.id}>
+                                        <td>
+                                            <div className="owner-staff-person">
+                                                <div className="owner-staff-person__avatar">
+                                                    {(staffMember.fullName || staffMember.email || 'S')
+                                                        .trim()
+                                                        .charAt(0)
+                                                        .toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <p className="owner-staff-person__name">
+                                                        {staffMember.fullName || 'Chưa cập nhật'}
+                                                    </p>
+                                                    <p className="owner-staff-person__email">{staffMember.email}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{staffMember.phone || 'Chưa cập nhật'}</td>
+                                        <td>
+                                            <span className={`owner-staff-role ${(staffMember.role || '').toLowerCase()}`}>
+                                                {ROLE_LABELS[staffMember.role] || staffMember.role}
+                                            </span>
+                                        </td>
+                                        <td>{SALARY_LABELS[staffMember.salaryType] || 'Chưa cập nhật'}</td>
+                                        <td className="is-right owner-staff-mono">
+                                            {staffMember.salaryAmount != null
+                                                ? new Intl.NumberFormat('vi-VN', {
+                                                    style: 'currency',
+                                                    currency: 'VND'
+                                                }).format(staffMember.salaryAmount)
+                                                : 'Chưa cập nhật'}
+                                        </td>
+                                        <td>
+                                            {storeLookup.get(String(staffMember.storeId || ''))
+                                                || staffMember.storeAddress
+                                                || 'Chưa phân cửa hàng'}
+                                        </td>
+                                        <td className="is-center">
+                                            <button
+                                                type="button"
+                                                className={`owner-staff-status-toggle ${staffMember.status === 'ACTIVE' ? 'is-active' : ''}`}
+                                                onClick={() => handleToggleStatus(staffMember)}
+                                                aria-label="Đổi trạng thái nhân viên"
+                                            >
+                                                <span className="owner-staff-status-toggle__track">
+                                                    <span className="owner-staff-status-toggle__thumb" />
+                                                </span>
+                                            </button>
+                                            <StatusBadge status={staffMember.status === 'ACTIVE' ? 'active' : 'inactive'}>
+                                                {staffMember.status === 'ACTIVE' ? 'Đang hoạt động' : 'Tạm ngưng'}
+                                            </StatusBadge>
+                                        </td>
+                                        <td className="owner-staff-password">
+                                            {staffMember.generatedPassword || 'Nhân viên đã đổi mật khẩu'}
+                                        </td>
+                                        <td className="is-right">
+                                            <div className="owner-staff-actions">
+                                                <button
+                                                    type="button"
+                                                    className="owner-staff-actions__btn"
+                                                    onClick={() => handleOpenModal(staffMember)}
+                                                >
+                                                    Sửa
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="owner-staff-actions__btn owner-staff-actions__btn--warn"
+                                                    onClick={() => handleToggleStatus(staffMember)}
+                                                >
+                                                    {staffMember.status === 'ACTIVE' ? 'Tạm ngưng' : 'Kích hoạt'}
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        {filteredStaff.length === 0 && (
+                            <div className="owner-staff-empty">
+                                <p>Không tìm thấy nhân viên phù hợp với bộ lọc hiện tại.</p>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="owner-staff-table-card__footer">
+                        <span>
+                            Hiển thị 1-{filteredStaff.length} trong số {staff.length} nhân viên
+                        </span>
+                        <span>
+                            Bộ lọc cửa hàng: {filterStoreId === 'all'
+                                ? 'Tất cả cửa hàng'
+                                : storeLookup.get(String(filterStoreId))}
+                        </span>
+                    </div>
+                </section>
+            )}
+
+            <Modal
+                isOpen={isModalOpen}
+                onClose={handleCloseModal}
+                title={editingStaff ? 'Cập nhật nhân viên' : 'Thêm nhân viên mới'}
+            >
+                <form onSubmit={handleSubmit} className="owner-staff-form">
+                    {errorMessage && (
+                        <div className="owner-staff-form__message owner-staff-form__message--error">
+                            {errorMessage}
+                        </div>
+                    )}
+
                     <Input
                         label="Email"
+                        name="email"
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onChange={handleChange}
                         required
                     />
-                    {!editingStaff && (
+
+                    <div className="owner-staff-form__grid">
+                        <div className="owner-staff-form__field">
+                            <label htmlFor="role">Vai trò</label>
+                            <select id="role" name="role" value={formData.role} onChange={handleChange} required>
+                                <option value="STAFF">Nhân viên</option>
+                                <option value="CASHIER">Thu ngân</option>
+                                <option value="KITCHEN">Bếp</option>
+                            </select>
+                        </div>
+
+                        <div className="owner-staff-form__field">
+                            <label htmlFor="salaryType">Hình thức trả lương</label>
+                            <select
+                                id="salaryType"
+                                name="salaryType"
+                                value={formData.salaryType}
+                                onChange={handleChange}
+                            >
+                                <option value="MONTHLY">Theo tháng</option>
+                                <option value="HOURLY">Theo giờ</option>
+                                <option value="DAILY">Theo ngày</option>
+                                <option value="SHIFT">Theo ca</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="owner-staff-form__grid">
                         <Input
-                            label="Mật khẩu"
-                            type="password"
-                            value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            required
+                            label="Mức lương"
+                            name="salaryAmount"
+                            type="number"
+                            min="0"
+                            value={formData.salaryAmount}
+                            onChange={handleChange}
                         />
-                    )}
-                    <Input
-                        label="Số điện thoại"
-                        type="tel"
-                        value={formData.phoneNumber}
-                        onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                        required
-                    />
-                    <div className="form-group">
-                        <label>Vai trò</label>
-                        <select
-                            value={formData.role}
-                            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                            required
-                        >
-                            <option value="STAFF">Nhân viên</option>
-                            <option value="CASHIER">Thu ngân</option>
-                        </select>
+
+                        <div className="owner-staff-form__field">
+                            <label htmlFor="storeId">Cửa hàng làm việc</label>
+                            <select
+                                id="storeId"
+                                name="storeId"
+                                value={formData.storeId}
+                                onChange={handleChange}
+                                required
+                            >
+                                <option value="">Chọn cửa hàng</option>
+                                {storeOptions.map((store) => (
+                                    <option key={store.id} value={store.id}>
+                                        {store.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
-                    <div className="form-group">
-                        <label>Hình thức trả lương</label>
-                        <select
-                            value={formData.salaryType}
-                            onChange={(e) => setFormData({ ...formData, salaryType: e.target.value })}
-                        >
-                            <option value="MONTHLY">Theo tháng</option>
-                            <option value="HOURLY">Theo giờ</option>
-                        </select>
-                    </div>
-                    <Input
-                        label="Mức lương (VNĐ)"
-                        type="number"
-                        min="0"
-                        value={formData.salaryAmount}
-                        onChange={(e) => setFormData({ ...formData, salaryAmount: e.target.value })}
-                        placeholder="Nhập số tiền"
-                    />
-                    <div className="form-group">
-                        <label>Cửa hàng</label>
-                        <select
-                            value={formData.storeId}
-                            onChange={(e) => setFormData({ ...formData, storeId: e.target.value })}
-                            required
-                        >
-                            <option value="">Chọn cửa hàng</option>
-                            {stores.map(store => (
-                                <option key={store.id} value={store.id}>{store.name}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="form-actions">
+
+                    <div className="owner-staff-form__actions">
                         <Button type="button" variant="outline" onClick={handleCloseModal}>
-                            Hủy
+                            Đóng
                         </Button>
-                        <Button type="submit">
-                            {editingStaff ? 'Cập nhật' : 'Tạo mới'}
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? 'Đang lưu...' : editingStaff ? 'Cập nhật' : 'Tạo tài khoản'}
                         </Button>
                     </div>
                 </form>

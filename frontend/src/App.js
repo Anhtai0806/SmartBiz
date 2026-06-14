@@ -8,11 +8,12 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import RegisterOtpVerify from './pages/RegisterOtpVerify';
 import AdminDashboard from './pages/admin/AdminDashboard';
-import BusinessOwnerDashboard from './pages/owner/BusinessOwnerDashboard';
+import BusinessOwnerHeader from './pages/owner/BusinessOwnerHeader';
 import CashierDashboard from './pages/cashier/CashierDashboard';
 import StaffDashboard from './pages/staff/StaffDashboard';
 import KitchenDashboard from './pages/kitchen/KitchenDashboard';
 import './App.css';
+import './responsive.css';
 
 function App() {
   useEffect(() => {
@@ -26,7 +27,9 @@ function App() {
         localStorage.removeItem('email');
         localStorage.removeItem('userId');
         localStorage.removeItem('fullName');
+        localStorage.removeItem('storeName');
         localStorage.removeItem('storeId');
+        localStorage.removeItem('onboardingCompleted');
         localStorage.removeItem('rememberMe');
       }
       // Mark session as active
@@ -65,8 +68,8 @@ function App() {
 
           {/* Business Owner routes - protected */}
           <Route path="/owner/*" element={
-            <PrivateRoute requiredRole="BUSINESS_OWNER">
-              <BusinessOwnerDashboard />
+              <PrivateRoute requiredRole="BUSINESS_OWNER">
+              <BusinessOwnerHeader />
             </PrivateRoute>
           } />
 

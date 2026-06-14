@@ -50,6 +50,13 @@ public class User implements UserDetails {
     @Column(length = 100)
     private String fullName;
 
+    @Column(name = "store_name", length = 100)
+    private String storeName;
+
+    @Column(name = "onboarding_completed", nullable = false)
+    @Builder.Default
+    private Boolean onboardingCompleted = true;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
@@ -64,6 +71,9 @@ public class User implements UserDetails {
 
     @Column(name = "salary_amount", precision = 12, scale = 2)
     private java.math.BigDecimal salaryAmount;
+
+    @Column(name = "temporary_password", length = 100)
+    private String temporaryPassword;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -109,6 +119,9 @@ public class User implements UserDetails {
         createdAt = LocalDateTime.now();
         if (status == null) {
             status = Status.ACTIVE;
+        }
+        if (onboardingCompleted == null) {
+            onboardingCompleted = true;
         }
     }
 

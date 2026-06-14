@@ -11,6 +11,7 @@ import com.smartbiz.backend.exception.UnauthorizedException;
 import com.smartbiz.backend.repository.MenuCategoryRepository;
 import com.smartbiz.backend.repository.MenuItemRepository;
 import com.smartbiz.backend.repository.QRPaymentCodeRepository;
+import com.smartbiz.backend.repository.StaffShiftRepository;
 import com.smartbiz.backend.repository.StoreRepository;
 import com.smartbiz.backend.repository.UserRepository;
 import com.smartbiz.backend.repository.WorkShiftRepository;
@@ -20,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -30,12 +32,17 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class BusinessOwnerService {
 
+    private static final String TEMP_PASSWORD_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    private static final int TEMP_PASSWORD_LENGTH = 10;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     private final UserRepository userRepository;
     private final StoreRepository storeRepository;
     private final PasswordEncoder passwordEncoder;
     private final MenuCategoryRepository menuCategoryRepository;
     private final MenuItemRepository menuItemRepository;
     private final WorkShiftRepository workShiftRepository;
+    private final StaffShiftRepository staffShiftRepository;
     private final QRPaymentCodeRepository qrPaymentCodeRepository;
 
     /**
@@ -59,7 +66,7 @@ public class BusinessOwnerService {
         // Create store
         Store store = requireValue(Store.builder()
                 .owner(owner)
-                .name(request.getName())
+                .branchName(request.getBranchName())
                 .address(request.getAddress())
                 .phone(request.getPhone())
                 .taxRate(request.getTaxRate())
@@ -92,7 +99,7 @@ public class BusinessOwnerService {
         }
 
         // Update fields
-        store.setName(request.getName());
+        store.setBranchName(request.getBranchName());
         store.setAddress(request.getAddress());
         store.setPhone(request.getPhone());
         store.setTaxRate(request.getTaxRate());
@@ -131,33 +138,35 @@ public class BusinessOwnerService {
             throw new EmailOrPhoneAlreadyExistsException("Email already exists: " + request.getEmail());
         }
 
-        // Validate role - only STAFF, CASHIER, or KITCHEN allowed
-        Role role;
-        try {
-            role = Role.valueOf(request.getRole().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new InvalidRoleException("Invalid role: " + request.getRole());
+        Role role = parseStaffRole(request.getRole());
+
+        Long storeId = requireValue(request.getStoreId(), "request.storeId");
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + storeId));
+
+        if (!store.getOwner().getId().equals(ownerId)) {
+            throw new UnauthorizedException("You can only create staff for your own stores");
         }
 
-        if (role != Role.STAFF && role != Role.CASHIER && role != Role.KITCHEN) {
-            throw new InvalidRoleException(
-                    "Only STAFF, CASHIER, or KITCHEN roles can be created. Cannot create: " + role);
-        }
+        String temporaryPassword = generateTemporaryPassword();
 
-        // Create staff user
         User staff = requireValue(User.builder()
                 .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .fullName(request.getFullName())
+                .password(passwordEncoder.encode(temporaryPassword))
                 .role(role)
                 .status(Status.ACTIVE)
                 .salaryType(request.getSalaryType())
                 .salaryAmount(request.getSalaryAmount())
+                .temporaryPassword(temporaryPassword)
+                .onboardingCompleted(false)
                 .build(), "staff");
 
         User savedStaff = userRepository.save(requireValue(staff, "staff"));
+        assignStaffToStoreEntity(store, savedStaff, ownerId);
 
-        return convertToUserResponse(requireValue(savedStaff, "savedStaff"));
+        User refreshedStaff = userRepository.findById(requireValue(savedStaff.getId(), "savedStaff.id"))
+                .orElseThrow(() -> new ResourceNotFoundException("Staff not found after creation"));
+        return convertToUserResponse(requireValue(refreshedStaff, "refreshedStaff"), temporaryPassword);
     }
 
     /**
@@ -193,11 +202,7 @@ public class BusinessOwnerService {
             throw new InvalidRoleException("Only STAFF, CASHIER, or KITCHEN can be assigned to stores");
         }
 
-        // Add staff to store if not already assigned
-        if (!store.getStaffMembers().contains(staff)) {
-            store.getStaffMembers().add(staff);
-            storeRepository.save(requireValue(store, "store"));
-        }
+        assignStaffToStoreEntity(store, staff, ownerId);
 
         return convertToStoreResponse(requireValue(store, "store"));
     }
@@ -248,7 +253,7 @@ public class BusinessOwnerService {
         staff.setStatus(newStatus);
         User updatedStaff = userRepository.save(staff);
 
-        return convertToUserResponse(requireValue(updatedStaff, "updatedStaff"));
+        return convertToUserResponse(requireValue(updatedStaff, "updatedStaff"), null);
     }
 
     /**
@@ -285,8 +290,6 @@ public class BusinessOwnerService {
         }
 
         // Update fields if provided
-        if (request.getFullName() != null)
-            staff.setFullName(request.getFullName());
         if (request.getEmail() != null) {
             // Check if email changed and is unique
             if (!staff.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
@@ -294,18 +297,25 @@ public class BusinessOwnerService {
             }
             staff.setEmail(request.getEmail());
         }
-        if (request.getPhone() != null)
-            staff.setPhone(request.getPhone());
-        if (request.getPassword() != null && !request.getPassword().isEmpty()) {
-            staff.setPassword(passwordEncoder.encode(request.getPassword()));
+        if (request.getRole() != null && !request.getRole().isBlank()) {
+            staff.setRole(parseStaffRole(request.getRole()));
         }
         if (request.getSalaryType() != null)
             staff.setSalaryType(request.getSalaryType());
         if (request.getSalaryAmount() != null)
             staff.setSalaryAmount(request.getSalaryAmount());
 
+        if (request.getStoreId() != null) {
+            Store targetStore = storeRepository.findById(request.getStoreId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Store not found with ID: " + request.getStoreId()));
+            if (!targetStore.getOwner().getId().equals(ownerId)) {
+                throw new UnauthorizedException("You can only assign staff to your own stores");
+            }
+            assignStaffToStoreEntity(targetStore, staff, ownerId);
+        }
+
         User updatedStaff = userRepository.save(requireValue(staff, "staff"));
-        return convertToUserResponse(requireValue(updatedStaff, "updatedStaff"));
+        return convertToUserResponse(requireValue(updatedStaff, "updatedStaff"), null);
     }
 
     /**
@@ -318,6 +328,16 @@ public class BusinessOwnerService {
         List<Store> stores = storeRepository.findByOwnerId(ownerId);
         return stores.stream()
                 .map(this::convertToStoreResponse)
+                .collect(Collectors.toList());
+    }
+
+    public List<UserResponse> getAllStaff(@NonNull UUID ownerId) {
+        userRepository.findById(ownerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Owner not found"));
+
+        return userRepository.findByStaffStores_Owner_Id(ownerId).stream()
+                .distinct()
+                .map(staff -> convertToUserResponse(requireValue(staff, "staff"), null))
                 .collect(Collectors.toList());
     }
 
@@ -364,7 +384,7 @@ public class BusinessOwnerService {
 
         // Convert staff members
         List<UserResponse> staffResponses = store.getStaffMembers().stream()
-                .map(staff -> convertToUserResponse(requireValue(staff, "staff")))
+                .map(staff -> convertToUserResponse(requireValue(staff, "staff"), null))
                 .collect(Collectors.toList());
 
         // Convert menu items
@@ -380,7 +400,8 @@ public class BusinessOwnerService {
 
         return StoreDetailResponse.builder()
                 .id(store.getId())
-                .name(store.getName())
+                .name(resolveStoreName(store))
+                .branchName(store.getBranchName())
                 .address(store.getAddress())
                 .phone(store.getPhone())
                 .taxRate(store.getTaxRate())
@@ -412,7 +433,7 @@ public class BusinessOwnerService {
         }
 
         return store.getStaffMembers().stream()
-                .map(staff -> convertToUserResponse(requireValue(staff, "staff")))
+                .map(staff -> convertToUserResponse(requireValue(staff, "staff"), null))
                 .collect(Collectors.toList());
     }
 
@@ -634,6 +655,7 @@ public class BusinessOwnerService {
         return StoreResponse.builder()
                 .id(store.getId())
                 .name(store.getName())
+                .branchName(store.getBranchName())
                 .address(store.getAddress())
                 .phone(store.getPhone())
                 .taxRate(store.getTaxRate())
@@ -649,15 +671,22 @@ public class BusinessOwnerService {
     /**
      * Convert User entity to UserResponse DTO
      */
-    private UserResponse convertToUserResponse(@NonNull User user) {
+    private UserResponse convertToUserResponse(@NonNull User user, String generatedPassword) {
+        Store assignedStore = resolveAssignedStore(user);
         return UserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
+                .phone(user.getPhone())
                 .fullName(user.getFullName())
+                .storeName(user.getStoreName())
+                .onboardingCompleted(user.getOnboardingCompleted())
                 .role(user.getRole().name())
                 .status(user.getStatus().name())
                 .salaryType(user.getSalaryType())
                 .salaryAmount(user.getSalaryAmount())
+                .storeId(assignedStore != null ? assignedStore.getId() : null)
+                .storeAddress(assignedStore != null ? assignedStore.getAddress() : null)
+                .generatedPassword(generatedPassword != null ? generatedPassword : user.getTemporaryPassword())
                 .createdAt(user.getCreatedAt())
                 .build();
     }
@@ -680,10 +709,11 @@ public class BusinessOwnerService {
      * Convert MenuCategory entity to MenuCategoryResponse DTO
      */
     private MenuCategoryResponse convertToCategoryResponse(@NonNull MenuCategory category) {
+        Store store = requireValue(category.getStore(), "category.store");
         return MenuCategoryResponse.builder()
                 .id(category.getId())
-                .storeId(category.getStore().getId())
-                .storeName(category.getStore().getName())
+                .storeId(store.getId())
+                .storeName(resolveStoreName(store))
                 .name(category.getName())
                 .itemCount(menuItemRepository.countByCategoryId(requireValue(category.getId(), "categoryId")))
                 .build();
@@ -783,6 +813,12 @@ public class BusinessOwnerService {
             throw new UnauthorizedException("You can only delete shift templates from your own stores");
         }
 
+        List<StaffShift> linkedShifts = staffShiftRepository.findByWorkShiftId(shiftId);
+        linkedShifts.forEach(shift -> shift.setWorkShift(null));
+        if (!linkedShifts.isEmpty()) {
+            staffShiftRepository.saveAll(linkedShifts);
+        }
+
         workShiftRepository.delete(requireValue(workShift, "workShift"));
     }
 
@@ -790,10 +826,11 @@ public class BusinessOwnerService {
      * Convert WorkShift entity to WorkShiftResponse DTO
      */
     private WorkShiftResponse convertToWorkShiftResponse(@NonNull WorkShift workShift) {
+        Store store = requireValue(workShift.getStore(), "workShift.store");
         return WorkShiftResponse.builder()
                 .id(workShift.getId())
-                .storeId(workShift.getStore().getId())
-                .storeName(workShift.getStore().getName())
+                .storeId(store.getId())
+                .storeName(resolveStoreName(store))
                 .name(workShift.getName())
                 .startTime(workShift.getStartTime().toString())
                 .endTime(workShift.getEndTime().toString())
@@ -804,10 +841,11 @@ public class BusinessOwnerService {
      * Convert Tables entity to TableResponse DTO
      */
     private TableResponse convertToTableResponse(@NonNull Tables table) {
+        Store store = requireValue(table.getStore(), "table.store");
         return TableResponse.builder()
                 .id(table.getId())
-                .storeId(table.getStore().getId())
-                .storeName(table.getStore().getName())
+                .storeId(store.getId())
+                .storeName(resolveStoreName(store))
                 .name(table.getName())
                 .status(table.getStatus())
                 .currentOrderId(null) // Will be populated by TableService if needed
@@ -920,5 +958,49 @@ public class BusinessOwnerService {
     @NonNull
     private <T> T requireValue(T value, String fieldName) {
         return Objects.requireNonNull(value, fieldName + " must not be null");
+    }
+
+    private String resolveStoreName(@NonNull Store store) {
+        return store.getName();
+    }
+
+    private Role parseStaffRole(@NonNull String rawRole) {
+        try {
+            Role role = Role.valueOf(rawRole.toUpperCase());
+            if (role != Role.STAFF && role != Role.CASHIER && role != Role.KITCHEN) {
+                throw new InvalidRoleException("Only STAFF, CASHIER, or KITCHEN roles are supported");
+            }
+            return role;
+        } catch (IllegalArgumentException exception) {
+            throw new InvalidRoleException("Invalid role: " + rawRole);
+        }
+    }
+
+    private void assignStaffToStoreEntity(@NonNull Store targetStore, @NonNull User staff, @NonNull UUID ownerId) {
+        List<Store> ownerStores = storeRepository.findByOwnerId(ownerId);
+        for (Store ownerStore : ownerStores) {
+            if (!ownerStore.getId().equals(targetStore.getId()) && ownerStore.getStaffMembers().remove(staff)) {
+                storeRepository.save(requireValue(ownerStore, "ownerStore"));
+            }
+        }
+
+        if (!targetStore.getStaffMembers().contains(staff)) {
+            targetStore.getStaffMembers().add(staff);
+        }
+        storeRepository.save(requireValue(targetStore, "targetStore"));
+    }
+
+    private Store resolveAssignedStore(@NonNull User user) {
+        UUID userId = requireValue(user.getId(), "user.id");
+        return storeRepository.findFirstByStaffMembersId(userId).orElse(null);
+    }
+
+    private String generateTemporaryPassword() {
+        StringBuilder builder = new StringBuilder(TEMP_PASSWORD_LENGTH);
+        for (int index = 0; index < TEMP_PASSWORD_LENGTH; index++) {
+            int randomIndex = SECURE_RANDOM.nextInt(TEMP_PASSWORD_ALPHABET.length());
+            builder.append(TEMP_PASSWORD_ALPHABET.charAt(randomIndex));
+        }
+        return builder.toString();
     }
 }

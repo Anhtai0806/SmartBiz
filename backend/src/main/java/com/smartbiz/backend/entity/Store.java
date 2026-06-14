@@ -34,11 +34,11 @@ public class Store {
     @ToString.Exclude
     private User owner;
 
-    @Column(nullable = false, length = 100)
-    private String name;
-
     @Column(length = 255)
     private String address;
+
+    @Column(name = "branch_name", length = 100)
+    private String branchName;
 
     @Column(nullable = false)
     @Builder.Default
@@ -80,11 +80,31 @@ public class Store {
     @ToString.Exclude
     private List<User> staffMembers = new ArrayList<>();
 
+    @Transient
+    private String name;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         if (status == null) {
             status = true;
         }
+    }
+
+    public String getName() {
+        if (branchName != null && !branchName.isBlank()) {
+            return branchName;
+        }
+        if (name != null && !name.isBlank()) {
+            return name;
+        }
+        if (address != null && !address.isBlank()) {
+            return address;
+        }
+        return owner != null ? owner.getStoreName() : null;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }

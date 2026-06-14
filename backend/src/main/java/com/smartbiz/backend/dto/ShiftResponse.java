@@ -21,6 +21,8 @@ public class ShiftResponse {
     private String userRole;
     private Long storeId;
     private String storeName;
+    private Long workShiftId;
+    private String workShiftName;
     private LocalDate shiftDate;
     private LocalTime startTime;
     private LocalTime endTime;

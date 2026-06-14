@@ -2,6 +2,9 @@
     padding: 20px;
     background: #f8f9fa;
     min-height: 100vh;
+    border-radius: 18px;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
 .calendar-header {
@@ -27,25 +30,29 @@
     gap: 12px;
 }
 
-.calendar-filters label {
-    font-weight: 500;
-    color: #333;
-    font-size: 14px;
-}
-
+.filter-btn,
 .staff-filter {
-    padding: 8px 16px;
+    padding: 10px 16px;
     border: 1px solid #ddd;
-    border-radius: 6px;
+    border-radius: 10px;
     font-size: 14px;
-    min-width: 200px;
+    min-width: 170px;
     cursor: pointer;
     background: white;
+    transition: all 0.2s ease;
 }
 
+.filter-btn:hover,
 .staff-filter:focus {
     outline: none;
     border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.filter-btn.active {
+    background: #1d4ed8;
+    color: #ffffff;
+    border-color: #1d4ed8;
 }
 
 .staff-legend {
@@ -77,7 +84,6 @@
     font-weight: 500;
 }
 
-/* Calendar styling */
 .rbc-calendar {
     background: white;
     border-radius: 12px;
@@ -86,7 +92,6 @@
     height: auto !important;
 }
 
-/* Make time view expand to show all slots */
 .rbc-time-view {
     border: 1px solid #e0e0e0;
     border-radius: 8px;
@@ -138,7 +143,6 @@
     transition: all 0.2s;
 }
 
-/* Toolbar styling */
 .rbc-toolbar {
     margin-bottom: 20px;
     display: flex;
@@ -154,7 +158,6 @@
     z-index: 10;
 }
 
-/* Button groups */
 .rbc-btn-group {
     display: flex;
     gap: 8px;
@@ -163,7 +166,6 @@
     z-index: 11;
 }
 
-/* All toolbar buttons */
 .rbc-toolbar button {
     padding: 10px 18px;
     border: 2px solid #e0e0e0;
@@ -194,7 +196,6 @@
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-/* Active view button */
 .rbc-toolbar button.rbc-active {
     background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
     color: white;
@@ -207,7 +208,6 @@
     transform: translateY(-1px);
 }
 
-/* Navigation buttons (Previous/Next) - First button group */
 .rbc-btn-group:first-child button {
     background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     color: white;
@@ -229,7 +229,6 @@
     box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
 }
 
-/* Today button - middle button in first group */
 .rbc-btn-group:first-child button:nth-child(2) {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
@@ -246,7 +245,6 @@
     box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
 
-/* Toolbar label (current date/month) */
 .rbc-toolbar-label {
     font-size: 20px;
     font-weight: 700;
@@ -296,7 +294,6 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Responsive design */
 @media (max-width: 768px) {
     .calendar-header {
         flex-direction: column;
@@ -306,10 +303,13 @@
 
     .calendar-filters {
         width: 100%;
+        flex-direction: column;
     }
 
+    .filter-btn,
     .staff-filter {
         width: 100%;
+        min-width: 0;
     }
 
     .staff-legend {

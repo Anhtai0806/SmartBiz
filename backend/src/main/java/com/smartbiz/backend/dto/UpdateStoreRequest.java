@@ -1,6 +1,5 @@
 package com.smartbiz.backend.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,8 +14,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UpdateStoreRequest {
 
-    @NotBlank(message = "Store name is required")
-    private String name;
+    @jakarta.validation.constraints.Size(max = 100, message = "Branch name must not exceed 100 characters")
+    private String branchName;
 
     private String address;
 

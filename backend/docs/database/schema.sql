@@ -22,6 +22,7 @@ CREATE TABLE `users` (
     `phone` VARCHAR(100) UNIQUE,
     `password` VARCHAR(255) NOT NULL,
     `full_name` VARCHAR(100),
+    `store_name` VARCHAR(100),
     `role` VARCHAR(50) NOT NULL,
     `status` VARCHAR(50) NOT NULL,
     `salary_type` VARCHAR(50),
@@ -41,7 +42,6 @@ DROP TABLE IF EXISTS `stores`;
 CREATE TABLE `stores` (
     `id` BIGINT AUTO_INCREMENT NOT NULL,
     `owner_id` VARCHAR(36) NOT NULL,
-    `name` VARCHAR(100) NOT NULL,
     `address` VARCHAR(255),
     `status` BOOLEAN NOT NULL DEFAULT TRUE,
     `created_at` DATETIME NOT NULL,

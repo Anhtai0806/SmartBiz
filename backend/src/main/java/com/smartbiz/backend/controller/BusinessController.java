@@ -76,6 +76,14 @@ public class BusinessController {
         return ResponseEntity.status(HttpStatus.CREATED).body(staff);
     }
 
+    @GetMapping("/staff")
+    @PreAuthorize("hasRole('BUSINESS_OWNER')")
+    public ResponseEntity<List<UserResponse>> getAllStaff() {
+        UUID currentUserId = getCurrentUserId();
+        List<UserResponse> staff = businessOwnerService.getAllStaff(currentUserId);
+        return ResponseEntity.ok(staff);
+    }
+
     /**
      * Assign staff to a store
      */

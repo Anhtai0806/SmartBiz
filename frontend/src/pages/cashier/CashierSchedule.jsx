@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ShiftCalendar from '../owner/ShiftCalendar';
 import { getShiftsByDateRange, getStoreStaff } from '../../api/cashierApi';
+import { getCurrentUser } from '../../api/authApi';
 import './CashierSchedule.css';
 
 const CashierSchedule = () => {
@@ -13,15 +14,27 @@ const CashierSchedule = () => {
     };
 
     useEffect(() => {
-        // Retrieve storeId from localStorage
-        // Cashiers usually operate in the context of a store they are assigned to
-        const storedStoreId = localStorage.getItem('storeId');
-        if (storedStoreId) {
-            setStoreId(storedStoreId);
-        } else {
-            console.error('Store ID not found in localStorage. Cashier must be assigned to a store.');
-            // Ideally redirect or show error if no store context
-        }
+        const loadStoreId = async () => {
+            const storedStoreId = localStorage.getItem('storeId');
+            if (storedStoreId) {
+                setStoreId(storedStoreId);
+                return;
+            }
+
+            try {
+                const user = await getCurrentUser();
+                if (user.storeId) {
+                    localStorage.setItem('storeId', user.storeId);
+                    setStoreId(user.storeId);
+                } else {
+                    console.error('Store ID not found for current cashier.');
+                }
+            } catch (error) {
+                console.error('Unable to load current user store.', error);
+            }
+        };
+
+        loadStoreId();
     }, []);
 
     if (!storeId) {

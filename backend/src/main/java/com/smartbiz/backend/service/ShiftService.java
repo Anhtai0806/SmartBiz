@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -25,6 +26,7 @@ public class ShiftService {
     private final StaffShiftRepository staffShiftRepository;
     private final UserRepository userRepository;
     private final StoreRepository storeRepository;
+    private final WorkShiftRepository workShiftRepository;
 
     /**
      * Get shifts by store (BUSINESS_OWNER)
@@ -76,12 +78,17 @@ public class ShiftService {
                     "Staff member '" + user.getFullName() + "' is not assigned to store '" + store.getName() + "'");
         }
 
+        WorkShift workShift = resolveWorkShift(store, request.getWorkShiftId());
+        LocalTime startTime = workShift != null ? workShift.getStartTime() : requireValue(request.getStartTime(), "startTime");
+        LocalTime endTime = workShift != null ? workShift.getEndTime() : requireValue(request.getEndTime(), "endTime");
+
         StaffShift shift = requireValue(StaffShift.builder()
                 .user(user)
                 .store(store)
+                .workShift(workShift)
                 .shiftDate(request.getShiftDate())
-                .startTime(request.getStartTime())
-                .endTime(request.getEndTime())
+                .startTime(startTime)
+                .endTime(endTime)
                 .build(), "shift");
 
         StaffShift saved = staffShiftRepository.save(requireValue(shift, "shift"));
@@ -107,9 +114,15 @@ public class ShiftService {
             throw new IllegalArgumentException("Shift does not belong to the specified store");
         }
 
+        Store shiftStore = requireValue(shift.getStore(), "shift.store");
+        WorkShift workShift = resolveWorkShift(shiftStore, request.getWorkShiftId());
+        LocalTime startTime = workShift != null ? workShift.getStartTime() : requireValue(request.getStartTime(), "startTime");
+        LocalTime endTime = workShift != null ? workShift.getEndTime() : requireValue(request.getEndTime(), "endTime");
+
+        shift.setWorkShift(workShift);
         shift.setShiftDate(request.getShiftDate());
-        shift.setStartTime(request.getStartTime());
-        shift.setEndTime(request.getEndTime());
+        shift.setStartTime(startTime);
+        shift.setEndTime(endTime);
 
         StaffShift updated = staffShiftRepository.save(requireValue(shift, "shift"));
         return convertToResponse(requireValue(updated, "updatedShift"));
@@ -171,17 +184,39 @@ public class ShiftService {
     }
 
     private ShiftResponse convertToResponse(@NonNull StaffShift shift) {
+        WorkShift workShift = shift.getWorkShift();
         return ShiftResponse.builder()
                 .id(shift.getId())
                 .userId(shift.getUser().getId())
                 .userFullName(shift.getUser().getFullName())
                 .userRole(shift.getUser().getRole().name())
                 .storeId(shift.getStore().getId())
-                .storeName(shift.getStore().getName())
+                .storeName(shift.getStore().getOwner().getStoreName())
+                .workShiftId(workShift != null ? workShift.getId() : null)
+                .workShiftName(workShift != null ? workShift.getName() : null)
                 .shiftDate(shift.getShiftDate())
                 .startTime(shift.getStartTime())
                 .endTime(shift.getEndTime())
                 .build();
+    }
+
+    private WorkShift resolveWorkShift(@NonNull Store store, Long workShiftId) {
+        if (workShiftId == null) {
+            return null;
+        }
+
+        WorkShift workShift = workShiftRepository.findById(workShiftId)
+                .orElseThrow(() -> new ResourceNotFoundException("Shift template not found with id: " + workShiftId));
+
+        Store workShiftStore = requireValue(workShift.getStore(), "workShift.store");
+        Long workShiftStoreId = requireValue(workShiftStore.getId(), "workShift.store.id");
+        Long currentStoreId = requireValue(store.getId(), "store.id");
+
+        if (!workShiftStoreId.equals(currentStoreId)) {
+            throw new IllegalArgumentException("Shift template does not belong to the specified store");
+        }
+
+        return workShift;
     }
 
     @NonNull

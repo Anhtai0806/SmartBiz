@@ -16,6 +16,7 @@ public class StoreResponse {
 
     private Long id;
     private String name;
+    private String branchName;
     private String address;
     private String phone;
     private java.math.BigDecimal taxRate;

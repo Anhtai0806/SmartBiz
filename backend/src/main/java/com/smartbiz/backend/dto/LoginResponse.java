@@ -18,6 +18,8 @@ public class LoginResponse {
     private String email;
     private String phone;
     private String fullName;
+    private String storeName;
+    private Boolean onboardingCompleted;
     private String role;
     private String status;
     private Long storeId;

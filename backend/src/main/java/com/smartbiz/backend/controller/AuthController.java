@@ -1,6 +1,7 @@
 package com.smartbiz.backend.controller;
 
 import com.smartbiz.backend.dto.ChangePasswordRequest;
+import com.smartbiz.backend.dto.CompleteOnboardingRequest;
 import com.smartbiz.backend.dto.LoginRequest;
 import com.smartbiz.backend.dto.LoginResponse;
 import com.smartbiz.backend.dto.LogoutResponse;
@@ -79,16 +80,7 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        UserResponse response = UserResponse.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .phone(user.getPhone())
-                .fullName(user.getFullName())
-                .role(user.getRole().name())
-                .status(user.getStatus().name())
-                .createdAt(user.getCreatedAt())
-                .build();
-
+        UserResponse response = authService.getCurrentUser(getAuthenticatedUserId(user));
         return ResponseEntity.ok(response);
     }
 
@@ -115,6 +107,18 @@ public class AuthController {
                 .message("Password changed successfully")
                 .timestamp(LocalDateTime.now())
                 .build();
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/complete-onboarding")
+    public ResponseEntity<UserResponse> completeOnboarding(
+            @Valid @RequestBody @NonNull CompleteOnboardingRequest request) {
+        User user = getAuthenticatedUser();
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        UserResponse response = authService.completeOnboarding(getAuthenticatedUserId(user), request);
         return ResponseEntity.ok(response);
     }
 

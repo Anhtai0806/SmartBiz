@@ -244,7 +244,7 @@ public class TableService {
         return TableResponse.builder()
                 .id(table.getId())
                 .storeId(table.getStore().getId())
-                .storeName(table.getStore().getName())
+                .storeName(table.getStore().getOwner().getStoreName())
                 .name(table.getName())
                 .status(table.getStatus())
                 .currentOrderId(currentOrderId)

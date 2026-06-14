@@ -43,6 +43,9 @@ public class PendingRegistration {
     @Column(nullable = false, length = 100)
     private String fullName;
 
+    @Column(name = "store_name", nullable = false, length = 100)
+    private String storeName;
+
     @Column(nullable = false, length = 6)
     private String otpCode;
 

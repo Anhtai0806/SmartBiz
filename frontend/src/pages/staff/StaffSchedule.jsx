@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ShiftCalendar from '../owner/ShiftCalendar';
 import { getShiftsByDateRange, getStoreStaff } from '../../api/staffApi';
+import { getCurrentUser } from '../../api/authApi';
 import './StaffSchedule.css';
 
 const StaffSchedule = () => {
@@ -13,13 +14,27 @@ const StaffSchedule = () => {
     };
 
     useEffect(() => {
-        // Retrieve storeId from localStorage
-        const storedStoreId = localStorage.getItem('storeId');
-        if (storedStoreId) {
-            setStoreId(storedStoreId);
-        } else {
-            console.error('Store ID not found in localStorage.');
-        }
+        const loadStoreId = async () => {
+            const storedStoreId = localStorage.getItem('storeId');
+            if (storedStoreId) {
+                setStoreId(storedStoreId);
+                return;
+            }
+
+            try {
+                const user = await getCurrentUser();
+                if (user.storeId) {
+                    localStorage.setItem('storeId', user.storeId);
+                    setStoreId(user.storeId);
+                } else {
+                    console.error('Store ID not found for current user.');
+                }
+            } catch (error) {
+                console.error('Unable to load current user store.', error);
+            }
+        };
+
+        loadStoreId();
     }, []);
 
     if (!storeId) {

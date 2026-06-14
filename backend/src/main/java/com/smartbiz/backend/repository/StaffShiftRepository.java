@@ -22,4 +22,6 @@ public interface StaffShiftRepository extends JpaRepository<StaffShift, Long> {
     List<StaffShift> findByUserIdAndShiftDateBetween(UUID userId, LocalDate startDate, LocalDate endDate);
 
     List<StaffShift> findByStoreIdAndShiftDateBetween(Long storeId, LocalDate startDate, LocalDate endDate);
+
+    List<StaffShift> findByWorkShiftId(Long workShiftId);
 }

@@ -1,6 +1,7 @@
 package com.smartbiz.backend.service;
 
 import com.smartbiz.backend.dto.ChangePasswordRequest;
+import com.smartbiz.backend.dto.CompleteOnboardingRequest;
 import com.smartbiz.backend.dto.LoginRequest;
 import com.smartbiz.backend.dto.LoginResponse;
 import com.smartbiz.backend.dto.RegisterOtpResponse;
@@ -10,6 +11,7 @@ import com.smartbiz.backend.dto.ResendRegisterOtpRequest;
 import com.smartbiz.backend.dto.UpdateProfileRequest;
 import com.smartbiz.backend.dto.UserResponse;
 import com.smartbiz.backend.entity.PendingRegistration;
+import com.smartbiz.backend.entity.Store;
 import com.smartbiz.backend.entity.User;
 import com.smartbiz.backend.enums.Role;
 import com.smartbiz.backend.enums.Status;
@@ -31,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.security.SecureRandom;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -112,6 +115,7 @@ public class AuthService {
                 pendingRegistration.setPhone(registerRequest.getPhone());
                 pendingRegistration.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
                 pendingRegistration.setFullName(registerRequest.getFullName());
+                pendingRegistration.setStoreName(registerRequest.getStoreName());
                 pendingRegistration.setOtpCode(otpCode);
                 pendingRegistration.setExpiresAt(LocalDateTime.now().plusSeconds(REGISTER_OTP_EXPIRES_IN_SECONDS));
                 pendingRegistrationRepository.save(pendingRegistration);
@@ -155,6 +159,7 @@ public class AuthService {
                                 .phone(pendingRegistration.getPhone())
                                 .password(pendingRegistration.getPassword())
                                 .fullName(pendingRegistration.getFullName())
+                                .storeName(pendingRegistration.getStoreName())
                                 .role(Role.BUSINESS_OWNER)
                                 .status(Status.ACTIVE)
                                 .build(), "user");
@@ -215,10 +220,20 @@ public class AuthService {
                                 .email(updatedUser.getEmail())
                                 .phone(updatedUser.getPhone())
                                 .fullName(updatedUser.getFullName())
+                                .storeName(updatedUser.getStoreName())
+                                .onboardingCompleted(updatedUser.getOnboardingCompleted())
                                 .role(updatedUser.getRole().name())
                                 .status(updatedUser.getStatus().name())
+                                .storeId(resolveAssignedStoreId(updatedUser))
+                                .storeAddress(resolveAssignedStoreAddress(updatedUser))
                                 .createdAt(updatedUser.getCreatedAt())
                                 .build();
+        }
+
+        public UserResponse getCurrentUser(@NonNull UUID userId) {
+                User user = userRepository.findById(userId)
+                                .orElseThrow(() -> new RuntimeException("User not found"));
+                return buildUserResponse(requireValue(user, "user"), null);
         }
 
         public void changePassword(@NonNull UUID userId, @NonNull ChangePasswordRequest request) {
@@ -234,14 +249,38 @@ public class AuthService {
                 }
 
                 user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+                user.setTemporaryPassword(null);
                 userRepository.save(user);
+        }
+
+        @Transactional
+        public UserResponse completeOnboarding(@NonNull UUID userId, @NonNull CompleteOnboardingRequest request) {
+                if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+                        throw new RuntimeException("Mật khẩu xác nhận không khớp");
+                }
+
+                User user = userRepository.findById(userId)
+                                .orElseThrow(() -> new RuntimeException("User not found"));
+
+                String requestedPhone = request.getPhone();
+                if (!Objects.equals(user.getPhone(), requestedPhone) &&
+                                userRepository.findByPhone(requestedPhone).isPresent()) {
+                        throw new RuntimeException("Số điện thoại đã được sử dụng");
+                }
+
+                user.setFullName(request.getFullName());
+                user.setPhone(requestedPhone);
+                user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+                user.setOnboardingCompleted(true);
+                user.setTemporaryPassword(null);
+
+                User updatedUser = userRepository.save(user);
+                return buildUserResponse(updatedUser, null);
         }
 
         private LoginResponse buildLoginResponse(@NonNull User user, @NonNull String token) {
                 UUID userId = requireValue(user.getId(), "user.id");
-                Long storeId = storeRepository.findFirstByStaffMembersId(userId)
-                                .map(com.smartbiz.backend.entity.Store::getId)
-                                .orElse(null);
+                Long storeId = resolveAssignedStoreId(user);
 
                 return LoginResponse.builder()
                                 .token(token)
@@ -250,6 +289,8 @@ public class AuthService {
                                 .phone(user.getPhone())
                                 .email(user.getEmail())
                                 .fullName(user.getFullName())
+                                .storeName(user.getStoreName())
+                                .onboardingCompleted(user.getOnboardingCompleted())
                                 .role(user.getRole().name())
                                 .status(user.getStatus().name())
                                 .storeId(storeId)
@@ -264,6 +305,7 @@ public class AuthService {
                                 .email(email)
                                 .password(randomPassword)
                                 .fullName(defaultName)
+                                .storeName(defaultName)
                                 .role(Role.BUSINESS_OWNER)
                                 .status(Status.ACTIVE)
                                 .build();
@@ -272,6 +314,40 @@ public class AuthService {
         private String generateSixDigitOtp() {
                 int otp = OTP_RANDOM.nextInt(900000) + 100000;
                 return String.valueOf(otp);
+        }
+
+        private UserResponse buildUserResponse(@NonNull User user, String generatedPassword) {
+                return UserResponse.builder()
+                                .id(user.getId())
+                                .email(user.getEmail())
+                                .phone(user.getPhone())
+                                .fullName(user.getFullName())
+                                .storeName(user.getStoreName())
+                                .onboardingCompleted(user.getOnboardingCompleted())
+                                .role(user.getRole().name())
+                                .status(user.getStatus().name())
+                                .salaryType(user.getSalaryType())
+                                .salaryAmount(user.getSalaryAmount())
+                                .storeId(resolveAssignedStoreId(user))
+                                .storeAddress(resolveAssignedStoreAddress(user))
+                                .generatedPassword(generatedPassword != null ? generatedPassword : user.getTemporaryPassword())
+                                .createdAt(user.getCreatedAt())
+                                .build();
+        }
+
+        private Long resolveAssignedStoreId(@NonNull User user) {
+                Optional<Store> assignedStore = resolveAssignedStore(user);
+                return assignedStore.map(Store::getId).orElseGet(() -> null);
+        }
+
+        private String resolveAssignedStoreAddress(@NonNull User user) {
+                Optional<Store> assignedStore = resolveAssignedStore(user);
+                return assignedStore.map(Store::getAddress).orElseGet(() -> null);
+        }
+
+        private Optional<Store> resolveAssignedStore(@NonNull User user) {
+                UUID userId = requireValue(user.getId(), "user.id");
+                return storeRepository.findFirstByStaffMembersId(userId);
         }
 
         @NonNull

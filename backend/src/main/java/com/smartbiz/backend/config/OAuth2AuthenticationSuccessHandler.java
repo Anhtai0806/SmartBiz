@@ -58,6 +58,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                     .queryParam("email", loginResponse.getEmail())
                     .queryParam("userId", loginResponse.getId())
                     .queryParam("fullName", loginResponse.getFullName())
+                    .queryParam("storeName", loginResponse.getStoreName())
+                    .queryParam("onboardingCompleted", loginResponse.getOnboardingCompleted())
                     .queryParam("storeId", loginResponse.getStoreId())
                     .build()
                     .encode()

@@ -57,6 +57,8 @@ const Login = () => {
             localStorage.setItem('email', params.get('email') || '');
             localStorage.setItem('userId', params.get('userId') || '');
             localStorage.setItem('fullName', params.get('fullName') || '');
+            localStorage.setItem('storeName', params.get('storeName') || '');
+            localStorage.setItem('onboardingCompleted', params.get('onboardingCompleted') || 'true');
             const storeId = params.get('storeId');
             if (storeId && storeId !== 'null') {
                 localStorage.setItem('storeId', storeId);
@@ -65,20 +67,18 @@ const Login = () => {
             }
             localStorage.setItem('rememberMe', 'true');
             redirectByRole(oauthRole);
-            return;
         }
-
     }, [location.search, redirectByRole]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
 
         if (errors[name]) {
-            setErrors(prev => ({ ...prev, [name]: '' }));
+            setErrors((prev) => ({ ...prev, [name]: '' }));
         }
     };
 
@@ -121,8 +121,12 @@ const Login = () => {
             localStorage.setItem('email', response.email);
             localStorage.setItem('userId', response.id);
             localStorage.setItem('fullName', response.fullName || '');
+            localStorage.setItem('storeName', response.storeName || '');
+            localStorage.setItem('onboardingCompleted', String(response.onboardingCompleted ?? true));
             if (response.storeId) {
                 localStorage.setItem('storeId', response.storeId);
+            } else {
+                localStorage.removeItem('storeId');
             }
             localStorage.setItem('rememberMe', formData.rememberMe.toString());
 
@@ -139,22 +143,22 @@ const Login = () => {
     return (
         <div className="login-page auth-page">
             <Link to="/" className="auth-brand-link" aria-label="Về trang chủ SmartBiz">
-                <span className="auth-brand-icon">📊</span>
+                <span className="auth-brand-icon">SB</span>
                 <span className="auth-brand-text">SmartBiz</span>
             </Link>
 
             <div className="auth-card auth-card-login">
                 <section className="auth-welcome-panel auth-welcome-left" aria-label="Đăng ký tài khoản">
                     <div className="auth-welcome-content">
-                        <h2>Hello, Welcome!</h2>
-                        <p>Don't have an account?</p>
-                        <Link to="/register" className="auth-outline-link">Register</Link>
+                        <h2>Xin chào!</h2>
+                        <p>Bạn chưa có tài khoản?</p>
+                        <Link to="/register" className="auth-outline-link">Đăng ký</Link>
                     </div>
                 </section>
 
                 <section className="auth-form-panel">
                     <div className="login-header auth-header">
-                        <h1 className="login-title auth-title">Login</h1>
+                        <h1 className="login-title auth-title">Đăng nhập</h1>
                     </div>
 
                     {errors.general && (
@@ -171,7 +175,7 @@ const Login = () => {
                             value={formData.username}
                             onChange={handleChange}
                             error={errors.username}
-                            icon="👤"
+                            icon="U"
                             required
                         />
 
@@ -182,7 +186,7 @@ const Login = () => {
                             value={formData.password}
                             onChange={handleChange}
                             error={errors.password}
-                            icon="🔒"
+                            icon="*"
                             required
                         />
 
@@ -206,7 +210,7 @@ const Login = () => {
                             disabled={isLoading}
                             className="auth-submit-btn"
                         >
-                            {isLoading ? 'Đang đăng nhập...' : 'Login'}
+                            {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
                         </Button>
                     </form>
 

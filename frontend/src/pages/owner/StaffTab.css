@@ -7,12 +7,30 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 24px;
+    gap: 16px;
 }
 
 .tab-header h3 {
     font-size: 20px;
     font-weight: 700;
     color: #111827;
+}
+
+.tab-header p {
+    margin-top: 8px;
+    color: #64748b;
+}
+
+.staff-manage-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    border-radius: 12px;
+    background: #0f172a;
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 600;
 }
 
 .empty-state {

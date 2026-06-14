@@ -16,7 +16,7 @@ const RegisterOtpVerify = () => {
     const [email, setEmail] = useState(initialEmail);
     const [otpCode, setOtpCode] = useState('');
     const [secondsLeft, setSecondsLeft] = useState(location.state?.expiresInSeconds || DEFAULT_EXPIRES_IN_SECONDS);
-    const [message, setMessage] = useState(location.state?.message || 'Ma OTP da duoc gui den email cua ban.');
+    const [message, setMessage] = useState(location.state?.message || 'Mã OTP đã được gửi đến email của bạn.');
     const [error, setError] = useState('');
     const [isVerifying, setIsVerifying] = useState(false);
     const [isResending, setIsResending] = useState(false);
@@ -37,7 +37,7 @@ const RegisterOtpVerify = () => {
         }
 
         const timer = setInterval(() => {
-            setSecondsLeft(prev => Math.max(prev - 1, 0));
+            setSecondsLeft((prev) => Math.max(prev - 1, 0));
         }, 1000);
 
         return () => clearInterval(timer);
@@ -61,7 +61,7 @@ const RegisterOtpVerify = () => {
         event.preventDefault();
 
         if (!/^\d{6}$/.test(otpCode)) {
-            setError('Vui long nhap dung 6 chu so OTP.');
+            setError('Vui lòng nhập đúng 6 chữ số OTP.');
             return;
         }
 
@@ -78,15 +78,15 @@ const RegisterOtpVerify = () => {
             localStorage.removeItem('fullName');
             localStorage.removeItem('storeId');
             setIsVerified(true);
-            setMessage('Xac nhan dang ky thanh cong. Dang chuyen den trang dang nhap...');
+            setMessage('Xác nhận đăng ký thành công. Đang chuyển đến trang đăng nhập...');
             setTimeout(() => {
                 navigate('/login', {
                     replace: true,
-                    state: { message: 'Dang ky thanh cong. Vui long dang nhap.' }
+                    state: { message: 'Đăng ký thành công. Vui lòng đăng nhập.' }
                 });
             }, 1600);
         } catch (err) {
-            setError(err.message || 'Xac nhan OTP that bai.');
+            setError(err.message || 'Xác nhận OTP thất bại.');
         } finally {
             setIsVerifying(false);
         }
@@ -101,9 +101,9 @@ const RegisterOtpVerify = () => {
             setEmail(response.email || email);
             setOtpCode('');
             setSecondsLeft(response.expiresInSeconds || DEFAULT_EXPIRES_IN_SECONDS);
-            setMessage('Ma OTP moi da duoc gui. Ma cu khong con hieu luc.');
+            setMessage('Mã OTP mới đã được gửi. Mã cũ không còn hiệu lực.');
         } catch (err) {
-            setError(err.message || 'Khong the gui lai OTP.');
+            setError(err.message || 'Không thể gửi lại OTP.');
         } finally {
             setIsResending(false);
         }
@@ -111,7 +111,7 @@ const RegisterOtpVerify = () => {
 
     return (
         <div className="register-verify-page auth-page">
-            <Link to="/" className="auth-brand-link" aria-label="Ve trang chu SmartBiz">
+            <Link to="/" className="auth-brand-link" aria-label="Về trang chủ SmartBiz">
                 <span className="auth-brand-icon">SB</span>
                 <span className="auth-brand-text">SmartBiz</span>
             </Link>
@@ -119,8 +119,8 @@ const RegisterOtpVerify = () => {
             <div className="auth-card auth-card-verify">
                 <section className="auth-form-panel otp-form-panel">
                     <div className="register-header auth-header">
-                        <h1 className="register-title auth-title">Verify OTP</h1>
-                        <p className="otp-subtitle">Nhap ma 6 chu so da gui den {email}</p>
+                        <h1 className="register-title auth-title">Xác thực OTP</h1>
+                        <p className="otp-subtitle">Nhập mã 6 chữ số đã gửi đến {email}</p>
                     </div>
 
                     {message && (
@@ -137,7 +137,7 @@ const RegisterOtpVerify = () => {
 
                     <form onSubmit={handleVerify} className="register-form auth-form otp-form">
                         <Input
-                            label="Ma OTP"
+                            label="Mã OTP"
                             type="text"
                             name="otpCode"
                             value={otpCode}
@@ -148,14 +148,14 @@ const RegisterOtpVerify = () => {
                         />
 
                         <div className="otp-meta">
-                            <span>Hieu luc: {formattedTime}</span>
+                            <span>Hiệu lực: {formattedTime}</span>
                             <button
                                 type="button"
                                 className="otp-resend-btn"
                                 onClick={handleResend}
                                 disabled={isResending || isVerified}
                             >
-                                {isResending ? 'Dang gui...' : 'Gui lai ma'}
+                                {isResending ? 'Đang gửi...' : 'Gửi lại mã'}
                             </button>
                         </div>
 
@@ -166,20 +166,20 @@ const RegisterOtpVerify = () => {
                             disabled={isVerifying || isVerified}
                             className="auth-submit-btn"
                         >
-                            {isVerifying ? 'Dang xac nhan...' : 'Xac nhan dang ky'}
+                            {isVerifying ? 'Đang xác nhận...' : 'Xác nhận đăng ký'}
                         </Button>
                     </form>
 
                     <div className="otp-back-link">
-                        <Link to="/register">Dung email khac</Link>
+                        <Link to="/register">Dùng email khác</Link>
                     </div>
                 </section>
 
-                <section className="auth-welcome-panel auth-welcome-right" aria-label="Dang nhap">
+                <section className="auth-welcome-panel auth-welcome-right" aria-label="Đăng nhập">
                     <div className="auth-welcome-content">
-                        <h2>Almost Done</h2>
-                        <p>Xac thuc email de hoan tat tai khoan.</p>
-                        <Link to="/login" className="auth-outline-link">Login</Link>
+                        <h2>Sắp xong rồi</h2>
+                        <p>Xác thực email để hoàn tất tài khoản.</p>
+                        <Link to="/login" className="auth-outline-link">Đăng nhập</Link>
                     </div>
                 </section>
             </div>

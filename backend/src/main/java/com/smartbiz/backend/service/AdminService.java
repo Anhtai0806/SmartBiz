@@ -273,7 +273,9 @@ public class AdminService {
                 return UserResponse.builder()
                                 .id(user.getId())
                                 .email(user.getEmail())
+                                .phone(user.getPhone())
                                 .fullName(user.getFullName())
+                                .storeName(user.getStoreName())
                                 .role(user.getRole().name())
                                 .status(user.getStatus().name())
                                 .createdAt(user.getCreatedAt())
@@ -286,7 +288,7 @@ public class AdminService {
         private StoreResponse convertToStoreResponse(@NonNull Store store) {
                 return StoreResponse.builder()
                                 .id(store.getId())
-                                .name(store.getName())
+                                .name(resolveStoreName(store))
                                 .address(store.getAddress())
                                 .phone(store.getPhone())
                                 .taxRate(store.getTaxRate())
@@ -307,10 +309,11 @@ public class AdminService {
          */
         private MenuCategoryResponse convertToCategoryResponse(@NonNull MenuCategory category) {
                 Long categoryId = requireValue(category.getId(), "categoryId");
+                Store store = requireValue(category.getStore(), "category.store");
                 return MenuCategoryResponse.builder()
                                 .id(categoryId)
-                                .storeId(category.getStore().getId())
-                                .storeName(category.getStore().getName())
+                                .storeId(store.getId())
+                                .storeName(resolveStoreName(store))
                                 .name(category.getName())
                                 .itemCount(menuItemRepository.countByCategoryId(categoryId))
                                 .build();
@@ -378,5 +381,10 @@ public class AdminService {
         @NonNull
         private <T> T requireValue(T value, String fieldName) {
                 return Objects.requireNonNull(value, fieldName + " must not be null");
+        }
+
+        private String resolveStoreName(@NonNull Store store) {
+                User owner = requireValue(store.getOwner(), "store.owner");
+                return owner.getStoreName();
         }
 }

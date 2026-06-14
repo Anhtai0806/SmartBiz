@@ -11,6 +11,7 @@ const Register = () => {
     const formRef = useRef(null);
     const [formData, setFormData] = useState({
         fullName: '',
+        storeName: '',
         email: '',
         phone: '',
         password: '',
@@ -32,10 +33,10 @@ const Register = () => {
     };
 
     const getPasswordStrengthLabel = () => {
-        if (passwordStrength < 25) return 'Weak';
-        if (passwordStrength < 50) return 'Fair';
-        if (passwordStrength < 75) return 'Good';
-        return 'Strong';
+        if (passwordStrength < 25) return 'Yếu';
+        if (passwordStrength < 50) return 'Trung bình';
+        if (passwordStrength < 75) return 'Khá';
+        return 'Mạnh';
     };
 
     const getPasswordStrengthColor = () => {
@@ -57,7 +58,7 @@ const Register = () => {
         }
 
         confirmInput.setCustomValidity(
-            password === confirmPassword ? '' : 'Passwords do not match.'
+            password === confirmPassword ? '' : 'Mật khẩu xác nhận không khớp.'
         );
     };
 
@@ -72,32 +73,35 @@ const Register = () => {
         if (validity.valueMissing) {
             switch (name) {
                 case 'fullName':
-                    message = 'Please enter your full name.';
+                    message = 'Vui lòng nhập họ và tên.';
+                    break;
+                case 'storeName':
+                    message = 'Vui lòng nhập tên cửa hàng.';
                     break;
                 case 'email':
-                    message = 'Please enter your email.';
+                    message = 'Vui lòng nhập email.';
                     break;
                 case 'phone':
-                    message = 'Please enter your phone number.';
+                    message = 'Vui lòng nhập số điện thoại.';
                     break;
                 case 'password':
-                    message = 'Please enter your password.';
+                    message = 'Vui lòng nhập mật khẩu.';
                     break;
                 case 'confirmPassword':
-                    message = 'Please confirm your password.';
+                    message = 'Vui lòng xác nhận mật khẩu.';
                     break;
                 case 'agreeTerms':
-                    message = 'Please accept the terms to continue.';
+                    message = 'Vui lòng đồng ý với điều khoản để tiếp tục.';
                     break;
                 default:
                     break;
             }
         } else if (validity.typeMismatch && name === 'email') {
-            message = 'Please enter a valid email address.';
+            message = 'Vui lòng nhập địa chỉ email hợp lệ.';
         } else if (validity.patternMismatch && name === 'phone') {
-            message = 'Phone number must contain 10 or 11 digits.';
+            message = 'Số điện thoại phải gồm 10 hoặc 11 chữ số.';
         } else if (validity.tooShort && name === 'password') {
-            message = 'Password must be at least 6 characters.';
+            message = 'Mật khẩu phải có ít nhất 6 ký tự.';
         }
 
         target.setCustomValidity(message);
@@ -157,6 +161,7 @@ const Register = () => {
             const { register } = await import('../api/authApi');
             const response = await register({
                 fullName: formData.fullName,
+                storeName: formData.storeName,
                 email: formData.email,
                 phone: formData.phone,
                 password: formData.password
@@ -172,21 +177,21 @@ const Register = () => {
                 }
             });
         } catch (error) {
-            const message = error.message || 'Registration failed. Please check your information.';
+            const message = error.message || 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.';
 
             if (message.includes('Email already exists')) {
-                showServerFieldError('email', 'This email is already in use.');
+                showServerFieldError('email', 'Email này đã được sử dụng.');
                 return;
             }
 
             if (message.includes('Phone already exists')) {
-                showServerFieldError('phone', 'This phone number is already in use.');
+                showServerFieldError('phone', 'Số điện thoại này đã được sử dụng.');
                 return;
             }
 
             if (message.includes('Email and phone are already associated')) {
-                showServerFieldError('email', 'This email is already in use.');
-                showServerFieldError('phone', 'This phone number is already in use.');
+                showServerFieldError('email', 'Email này đã được sử dụng.');
+                showServerFieldError('phone', 'Số điện thoại này đã được sử dụng.');
                 return;
             }
 
@@ -198,15 +203,15 @@ const Register = () => {
 
     return (
         <div className="register-page auth-page">
-            <Link to="/" className="auth-brand-link" aria-label="Back to SmartBiz home">
-                <span className="auth-brand-icon">📊</span>
+            <Link to="/" className="auth-brand-link" aria-label="Về trang chủ SmartBiz">
+                <span className="auth-brand-icon">SB</span>
                 <span className="auth-brand-text">SmartBiz</span>
             </Link>
 
             <div className="auth-card auth-card-register">
                 <section className="auth-form-panel">
                     <div className="register-header auth-header">
-                        <h1 className="register-title auth-title">Registration</h1>
+                        <h1 className="register-title auth-title">Đăng ký</h1>
                     </div>
 
                     {generalError && (
@@ -217,13 +222,13 @@ const Register = () => {
 
                     <form ref={formRef} onSubmit={handleSubmit} className="register-form auth-form">
                         <Input
-                            label="Full name"
+                            label="Họ và tên"
                             type="text"
                             name="fullName"
                             value={formData.fullName}
                             onChange={handleChange}
                             onInvalid={(event) => setValidationMessage(event.target)}
-                            icon="👤"
+                            icon="U"
                             required
                         />
 
@@ -234,32 +239,43 @@ const Register = () => {
                             value={formData.email}
                             onChange={handleChange}
                             onInvalid={(event) => setValidationMessage(event.target)}
-                            icon="✉"
+                            icon="@"
                             required
                         />
 
                         <Input
-                            label="Phone number"
+                            label="Tên cửa hàng"
+                            type="text"
+                            name="storeName"
+                            value={formData.storeName}
+                            onChange={handleChange}
+                            onInvalid={(event) => setValidationMessage(event.target)}
+                            icon="S"
+                            required
+                        />
+
+                        <Input
+                            label="Số điện thoại"
                             type="tel"
                             name="phone"
                             value={formData.phone}
                             onChange={handleChange}
                             onInvalid={(event) => setValidationMessage(event.target)}
                             pattern="[0-9]{10,11}"
-                            icon="☎"
+                            icon="P"
                             required
                         />
 
                         <div>
                             <Input
-                                label="Password"
+                                label="Mật khẩu"
                                 type="password"
                                 name="password"
                                 value={formData.password}
                                 onChange={handleChange}
                                 onInvalid={(event) => setValidationMessage(event.target)}
                                 minLength={6}
-                                icon="🔒"
+                                icon="*"
                                 required
                             />
                             {formData.password && (
@@ -284,13 +300,13 @@ const Register = () => {
                         </div>
 
                         <Input
-                            label="Confirm password"
+                            label="Xác nhận mật khẩu"
                             type="password"
                             name="confirmPassword"
                             value={formData.confirmPassword}
                             onChange={handleChange}
                             onInvalid={(event) => setValidationMessage(event.target)}
-                            icon="🔒"
+                            icon="*"
                             required
                         />
 
@@ -305,7 +321,7 @@ const Register = () => {
                                     required
                                 />
                                 <span>
-                                    I agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>
+                                    Tôi đồng ý với <a href="/terms">Điều khoản dịch vụ</a> và <a href="/privacy">Chính sách bảo mật</a>
                                 </span>
                             </label>
                         </div>
@@ -317,27 +333,27 @@ const Register = () => {
                             disabled={isLoading}
                             className="auth-submit-btn"
                         >
-                            {isLoading ? 'Creating account...' : 'Register'}
+                            {isLoading ? 'Đang tạo tài khoản...' : 'Đăng ký'}
                         </Button>
                     </form>
 
                     <div className="register-divider auth-divider">
-                        <span>or continue with</span>
+                        <span>hoặc tiếp tục với</span>
                     </div>
 
                     <div className="social-register auth-socials">
-                        <a href={GOOGLE_AUTH_URL} className="google-auth-btn" aria-label="Continue with Google">
+                        <a href={GOOGLE_AUTH_URL} className="google-auth-btn" aria-label="Tiếp tục với Google">
                             <span className="google-auth-icon">G</span>
-                            <span>Continue with Google</span>
+                            <span>Tiếp tục với Google</span>
                         </a>
                     </div>
                 </section>
 
-                <section className="auth-welcome-panel auth-welcome-right" aria-label="Login">
+                <section className="auth-welcome-panel auth-welcome-right" aria-label="Đăng nhập">
                     <div className="auth-welcome-content">
-                        <h2>Welcome Back!</h2>
-                        <p>Already have an account?</p>
-                        <Link to="/login" className="auth-outline-link">Login</Link>
+                        <h2>Chào mừng trở lại!</h2>
+                        <p>Bạn đã có tài khoản?</p>
+                        <Link to="/login" className="auth-outline-link">Đăng nhập</Link>
                     </div>
                 </section>
             </div>

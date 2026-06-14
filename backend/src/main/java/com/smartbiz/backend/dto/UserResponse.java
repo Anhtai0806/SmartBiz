@@ -20,9 +20,14 @@ public class UserResponse {
     private String email;
     private String phone;
     private String fullName;
+    private String storeName;
+    private Boolean onboardingCompleted;
     private String role;
     private String status;
     private SalaryType salaryType;
     private BigDecimal salaryAmount;
+    private Long storeId;
+    private String storeAddress;
+    private String generatedPassword;
     private LocalDateTime createdAt;
 }

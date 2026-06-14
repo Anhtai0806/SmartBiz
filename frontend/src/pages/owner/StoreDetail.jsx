@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { getStoreDetails, updateStore } from '../../api/businessOwnerApi';
-import StaffTab from './StaffTab';
-import InventoryTab from './InventoryTab';
-import TablesTab from './TablesTab';
-import Modal from '../../components/Modal';
-import Input from '../../components/Input';
 import Button from '../../components/Button';
+import Input from '../../components/Input';
+import Modal from '../../components/Modal';
 import StatusBadge from '../../components/StatusBadge';
+import InventoryTab from './InventoryTab';
+import StaffTab from './StaffTab';
+import TablesTab from './TablesTab';
 import './StoreDetail.css';
 
 const StoreDetail = () => {
@@ -19,7 +19,7 @@ const StoreDetail = () => {
     const [error, setError] = useState(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editFormData, setEditFormData] = useState({
-        name: '',
+        branchName: '',
         address: '',
         phone: '',
         taxRate: '',
@@ -29,6 +29,7 @@ const StoreDetail = () => {
     });
 
     const isStoreActive = (status) => status !== false;
+    const displayTitle = store?.branchName || store?.name || `Chi nhánh #${store?.id || ''}`;
 
     const fetchStoreDetails = useCallback(async () => {
         try {
@@ -38,7 +39,7 @@ const StoreDetail = () => {
             setError(null);
         } catch (err) {
             console.error('Error fetching store details:', err);
-            setError(err.message || 'Khong the tai thong tin cua hang');
+            setError(err.message || 'Không thể tải thông tin cửa hàng');
         } finally {
             setLoading(false);
         }
@@ -50,7 +51,7 @@ const StoreDetail = () => {
 
     const handleEditStore = () => {
         setEditFormData({
-            name: store.name,
+            branchName: store.branchName || store.name || '',
             address: store.address || '',
             phone: store.phone || '',
             taxRate: store.taxRate || '',
@@ -61,20 +62,20 @@ const StoreDetail = () => {
         setIsEditModalOpen(true);
     };
 
-    const handleUpdateStore = async (e) => {
-        e.preventDefault();
+    const handleUpdateStore = async (event) => {
+        event.preventDefault();
         try {
             await updateStore(storeId, editFormData);
             setIsEditModalOpen(false);
             await fetchStoreDetails();
         } catch (err) {
             console.error('Error updating store:', err);
-            alert('Khong the cap nhat cua hang: ' + (err.response?.data?.message || err.message));
+            alert('Không thể cập nhật cửa hàng: ' + (err.response?.data?.message || err.message));
         }
     };
 
     if (loading) {
-        return <div className="loading">Dang tai thong tin cua hang...</div>;
+        return <div className="loading">Đang tải thông tin cửa hàng...</div>;
     }
 
     if (error) {
@@ -83,7 +84,7 @@ const StoreDetail = () => {
                 <div className="error-message">
                     <p>{error}</p>
                     <button onClick={() => navigate('/owner/stores')} className="back-btn">
-                        Quay lai danh sach
+                        Quay lại danh sách
                     </button>
                 </div>
             </div>
@@ -91,23 +92,23 @@ const StoreDetail = () => {
     }
 
     if (!store) {
-        return <div className="loading">Khong tim thay cua hang</div>;
+        return <div className="loading">Không tìm thấy cửa hàng</div>;
     }
 
     return (
         <div className="store-detail">
             <div className="store-header">
                 <button onClick={() => navigate('/owner/stores')} className="back-btn">
-                    Quay lai
+                    Quay lại
                 </button>
                 <div className="store-info">
                     <div className="store-title-row">
-                        <h1>{store.name}</h1>
+                        <h1>{displayTitle}</h1>
                         <StatusBadge status={isStoreActive(store.status) ? 'success' : 'danger'}>
-                            {isStoreActive(store.status) ? 'Dang hoat dong' : 'Tam ngung'}
+                            {isStoreActive(store.status) ? 'Đang hoạt động' : 'Tạm ngưng'}
                         </StatusBadge>
                     </div>
-                    <p className="store-address">{store.address}</p>
+                    {store.address && <p className="store-address">{store.address}</p>}
                     {store.phone && <p className="store-address">{store.phone}</p>}
                     <div style={{ display: 'flex', gap: '20px', marginTop: '8px', color: '#666' }}>
                         {store.taxRate && <span>VAT: {store.taxRate}%</span>}
@@ -117,7 +118,7 @@ const StoreDetail = () => {
                     </div>
                 </div>
                 <button onClick={handleEditStore} className="edit-store-btn">
-                    Sua cua hang
+                    Sửa cửa hàng
                 </button>
             </div>
 
@@ -133,16 +134,16 @@ const StoreDetail = () => {
                         border: '1px solid #ffcdd2'
                     }}
                 >
-                    <h2 style={{ color: '#d32f2f', marginBottom: '15px' }}>Cua hang dang tam ngung</h2>
+                    <h2 style={{ color: '#d32f2f', marginBottom: '15px' }}>Cửa hàng đang tạm ngưng</h2>
                     <p style={{ color: '#666', marginBottom: '20px' }}>
-                        Ban can kich hoat lai cua hang de tiep tuc quan ly nhan vien, ban va kho hang.
+                        Bạn cần kích hoạt lại cửa hàng để tiếp tục quản lý nhân viên, bàn và kho hàng.
                     </p>
                     <Button
                         onClick={async () => {
-                            if (window.confirm('Ban co chac chan muon kich hoat lai cua hang nay?')) {
+                            if (window.confirm('Bạn có chắc chắn muốn kích hoạt lại cửa hàng này?')) {
                                 try {
                                     await updateStore(storeId, {
-                                        name: store.name,
+                                        branchName: store.branchName || store.name || '',
                                         address: store.address || '',
                                         phone: store.phone || '',
                                         taxRate: store.taxRate || '',
@@ -152,12 +153,12 @@ const StoreDetail = () => {
                                     });
                                     await fetchStoreDetails();
                                 } catch (err) {
-                                    alert('Khong the kich hoat cua hang: ' + (err.response?.data?.message || err.message));
+                                    alert('Không thể kích hoạt cửa hàng: ' + (err.response?.data?.message || err.message));
                                 }
                             }
                         }}
                     >
-                        Khoi phuc hoat dong
+                        Khôi phục hoạt động
                     </Button>
                 </div>
             ) : (
@@ -167,19 +168,19 @@ const StoreDetail = () => {
                             className={`tab-btn ${activeTab === 'staff' ? 'active' : ''}`}
                             onClick={() => setActiveTab('staff')}
                         >
-                            Nhan vien ({store.staffMembers?.length || 0})
+                            Nhân viên ({store.staffMembers?.length || 0})
                         </button>
                         <button
                             className={`tab-btn ${activeTab === 'tables' ? 'active' : ''}`}
                             onClick={() => setActiveTab('tables')}
                         >
-                            Ban ({store.tables?.length || 0})
+                            Bàn ({store.tables?.length || 0})
                         </button>
                         <button
                             className={`tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
                             onClick={() => setActiveTab('inventory')}
                         >
-                            Kho hang ({store.menuItems?.length || 0})
+                            Kho hàng ({store.menuItems?.length || 0})
                         </button>
                     </div>
 
@@ -209,72 +210,69 @@ const StoreDetail = () => {
                 </div>
             )}
 
-            <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Sua thong tin cua hang">
+            <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Sửa thông tin cửa hàng">
                 <form onSubmit={handleUpdateStore} className="edit-store-form">
                     <Input
-                        label="Ten cua hang"
+                        label="Tên chi nhánh"
                         type="text"
-                        value={editFormData.name}
-                        onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                        value={editFormData.branchName}
+                        onChange={(event) => setEditFormData({ ...editFormData, branchName: event.target.value })}
                         required
                     />
                     <Input
-                        label="Dia chi"
+                        label="Địa chỉ"
                         type="text"
                         value={editFormData.address}
-                        onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                        onChange={(event) => setEditFormData({ ...editFormData, address: event.target.value })}
+                        required
                     />
                     <Input
-                        label="So dien thoai"
+                        label="Số điện thoại"
                         type="tel"
                         value={editFormData.phone}
-                        onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                        onChange={(event) => setEditFormData({ ...editFormData, phone: event.target.value })}
+                    />
+                    <Input
+                        label="Thuế VAT (%)"
+                        type="number"
+                        value={editFormData.taxRate}
+                        onChange={(event) => setEditFormData({ ...editFormData, taxRate: event.target.value })}
+                        step="0.01"
                     />
                     <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
                         <div style={{ flex: 1 }}>
                             <Input
-                                label="Thue VAT (%)"
-                                type="number"
-                                value={editFormData.taxRate}
-                                onChange={(e) => setEditFormData({ ...editFormData, taxRate: e.target.value })}
-                                step="0.01"
-                            />
-                        </div>
-                    </div>
-                    <div className="form-row" style={{ display: 'flex', gap: '1rem' }}>
-                        <div style={{ flex: 1 }}>
-                            <Input
-                                label="Gio mo cua"
+                                label="Giờ mở cửa"
                                 type="time"
                                 value={editFormData.openingTime}
-                                onChange={(e) => setEditFormData({ ...editFormData, openingTime: e.target.value })}
+                                onChange={(event) => setEditFormData({ ...editFormData, openingTime: event.target.value })}
                             />
                         </div>
                         <div style={{ flex: 1 }}>
                             <Input
-                                label="Gio dong cua"
+                                label="Giờ đóng cửa"
                                 type="time"
                                 value={editFormData.closingTime}
-                                onChange={(e) => setEditFormData({ ...editFormData, closingTime: e.target.value })}
+                                onChange={(event) => setEditFormData({ ...editFormData, closingTime: event.target.value })}
                             />
                         </div>
                     </div>
                     <div className="form-group">
-                        <label>Trang thai</label>
+                        <label>Trạng thái</label>
                         <select
                             value={String(editFormData.status)}
-                            onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value === 'true' })}
+                            onChange={(event) => setEditFormData({ ...editFormData, status: event.target.value === 'true' })}
                             className="status-select"
                         >
-                            <option value="true">Dang hoat dong</option>
-                            <option value="false">Tam ngung</option>
+                            <option value="true">Đang hoạt động</option>
+                            <option value="false">Tạm ngưng</option>
                         </select>
                     </div>
                     <div className="form-actions">
                         <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
-                            Huy
+                            Hủy
                         </Button>
-                        <Button type="submit">Luu thay doi</Button>
+                        <Button type="submit">Lưu thay đổi</Button>
                     </div>
                 </form>
             </Modal>

@@ -3,11 +3,13 @@ package com.smartbiz.backend.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 
 import com.smartbiz.backend.enums.SalaryType;
@@ -23,17 +25,13 @@ public class CreateStaffRequest {
     @Size(max = 100, message = "Email must not exceed 100 characters")
     private String email;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters")
-    private String password;
-
-    @NotBlank(message = "Full name is required")
-    @Size(max = 100, message = "Full name must not exceed 100 characters")
-    private String fullName;
-
     @NotNull(message = "Role is required")
-    private String role; // STAFF or CASHIER only
+    private String role;
 
     private SalaryType salaryType;
     private BigDecimal salaryAmount;
+
+    @NotNull(message = "Store is required")
+    @Positive(message = "Store ID must be greater than 0")
+    private Long storeId;
 }
