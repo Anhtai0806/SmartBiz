@@ -13,10 +13,17 @@ INSERT INTO `users` (`id`, `email`, `phone`, `password`, `full_name`, `role`, `s
 ('a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', 'admin@smartbiz.com', '0987654321', '$2a$10$wY1z.E/y.W.sV.fA.t.R/O.P.w.k.m.l.j.h.g.f.e.d.c.b.a', 'Nguyễn Quản Trị', 'ADMIN', 'ACTIVE', NOW());
 
 -- Staff & Cashier
-INSERT INTO `users` (`id`, `email`, `phone`, `password`, `full_name`, `role`, `status`, `salary_type`, `salary_amount`, `created_at`) VALUES
-('c1d2e3f4-g5h6-7i8j-9k0l-1m2n3o4p5q6r', 'cashier1@smartbiz.com', '0911223344', '$2a$10$wY1z.E/y.W.sV.fA.t.R/O.P.w.k.m.l.j.h.g.f.e.d.c.b.a', 'Lê Thu Ngân', 'CASHIER', 'ACTIVE', 'MONTHLY', 8000000, NOW()),
-('d1e2f3g4-h5i6-7j8k-9l0m-1n2o3p4q5r6s', 'staff1@smartbiz.com', '0922334455', '$2a$10$wY1z.E/y.W.sV.fA.t.R/O.P.w.k.m.l.j.h.g.f.e.d.c.b.a', 'Phạm Phục Vụ', 'STAFF', 'ACTIVE', 'HOURLY', 25000, NOW()),
-('e1f2g3h4-i5j6-7k8l-9m0n-1o2p3q4r5s6t', 'kitchen1@smartbiz.com', '0933445566', '$2a$10$wY1z.E/y.W.sV.fA.t.R/O.P.w.k.m.l.j.h.g.f.e.d.c.b.a', 'Vũ Đầu Bếp', 'KITCHEN', 'ACTIVE', 'MONTHLY', 10000000, NOW());
+INSERT INTO `users` (`id`, `email`, `phone`, `password`, `full_name`, `role`, `status`, `created_at`) VALUES
+('c1d2e3f4-g5h6-7i8j-9k0l-1m2n3o4p5q6r', 'cashier1@smartbiz.com', '0911223344', '$2a$10$wY1z.E/y.W.sV.fA.t.R/O.P.w.k.m.l.j.h.g.f.e.d.c.b.a', 'Lê Thu Ngân', 'CASHIER', 'ACTIVE', NOW()),
+('d1e2f3g4-h5i6-7j8k-9l0m-1n2o3p4q5r6s', 'staff1@smartbiz.com', '0922334455', '$2a$10$wY1z.E/y.W.sV.fA.t.R/O.P.w.k.m.l.j.h.g.f.e.d.c.b.a', 'Phạm Phục Vụ', 'STAFF', 'ACTIVE', NOW()),
+('e1f2g3h4-i5j6-7k8l-9m0n-1o2p3q4r5s6t', 'kitchen1@smartbiz.com', '0933445566', '$2a$10$wY1z.E/y.W.sV.fA.t.R/O.P.w.k.m.l.j.h.g.f.e.d.c.b.a', 'Vũ Đầu Bếp', 'KITCHEN', 'ACTIVE', NOW());
+
+-- Staff Accounts
+INSERT INTO `staff_account` (`user_id`, `salary_type`, `salary_amount`, `temporary_password`, `onboarding_completed`) VALUES
+('c1d2e3f4-g5h6-7i8j-9k0l-1m2n3o4p5q6r', 'MONTHLY', 8000000, NULL, TRUE),
+('d1e2f3g4-h5i6-7j8k-9l0m-1n2o3p4q5r6s', 'HOURLY', 25000, NULL, TRUE),
+('e1f2g3h4-i5j6-7k8l-9m0n-1o2p3q4r5s6t', 'MONTHLY', 10000000, NULL, TRUE);
+
 
 -- ==========================================
 -- 2. Insert Store

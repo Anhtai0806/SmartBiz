@@ -44,6 +44,7 @@ public class BusinessOwnerService {
     private final WorkShiftRepository workShiftRepository;
     private final StaffShiftRepository staffShiftRepository;
     private final QRPaymentCodeRepository qrPaymentCodeRepository;
+    private final StaffMailService staffMailService;
 
     /**
      * Create a new store for the business owner
@@ -155,17 +156,42 @@ public class BusinessOwnerService {
                 .password(passwordEncoder.encode(temporaryPassword))
                 .role(role)
                 .status(Status.ACTIVE)
+                .build(), "staff");
+
+        StaffAccount staffAccount = requireValue(StaffAccount.builder()
+                .user(staff)
                 .salaryType(request.getSalaryType())
                 .salaryAmount(request.getSalaryAmount())
                 .temporaryPassword(temporaryPassword)
                 .onboardingCompleted(false)
-                .build(), "staff");
+                .build(), "staffAccount");
+        staff.setStaffAccount(staffAccount);
 
         User savedStaff = userRepository.save(requireValue(staff, "staff"));
         assignStaffToStoreEntity(store, savedStaff, ownerId);
 
         User refreshedStaff = userRepository.findById(requireValue(savedStaff.getId(), "savedStaff.id"))
                 .orElseThrow(() -> new ResourceNotFoundException("Staff not found after creation"));
+
+        // Send login credentials email to the staff member
+        String resolvedStoreName = store.getName();
+        if (resolvedStoreName == null || resolvedStoreName.isBlank()) {
+            resolvedStoreName = owner.getStoreName();
+        }
+        if (resolvedStoreName == null || resolvedStoreName.isBlank()) {
+            resolvedStoreName = "Cửa hàng SmartBiz";
+        }
+        try {
+            staffMailService.sendStaffCredentials(
+                    refreshedStaff.getEmail(),
+                    resolvedStoreName,
+                    temporaryPassword
+            );
+        } catch (Exception ex) {
+            // Log the exception but do not fail the transaction to keep staff creation resilient
+            System.err.println("Failed to send credentials email to staff " + refreshedStaff.getEmail() + ": " + ex.getMessage());
+        }
+
         return convertToUserResponse(requireValue(refreshedStaff, "refreshedStaff"), temporaryPassword);
     }
 
@@ -300,10 +326,20 @@ public class BusinessOwnerService {
         if (request.getRole() != null && !request.getRole().isBlank()) {
             staff.setRole(parseStaffRole(request.getRole()));
         }
-        if (request.getSalaryType() != null)
-            staff.setSalaryType(request.getSalaryType());
-        if (request.getSalaryAmount() != null)
-            staff.setSalaryAmount(request.getSalaryAmount());
+        StaffAccount staffAccount = staff.getStaffAccount();
+        if (staffAccount == null) {
+            staffAccount = requireValue(StaffAccount.builder()
+                    .user(staff)
+                    .onboardingCompleted(true)
+                    .build(), "staffAccount");
+            staff.setStaffAccount(staffAccount);
+        }
+        if (request.getSalaryType() != null) {
+            staffAccount.setSalaryType(request.getSalaryType());
+        }
+        if (request.getSalaryAmount() != null) {
+            staffAccount.setSalaryAmount(request.getSalaryAmount());
+        }
 
         if (request.getStoreId() != null) {
             Store targetStore = storeRepository.findById(request.getStoreId())
@@ -673,20 +709,21 @@ public class BusinessOwnerService {
      */
     private UserResponse convertToUserResponse(@NonNull User user, String generatedPassword) {
         Store assignedStore = resolveAssignedStore(user);
+        StaffAccount staffAccount = user.getStaffAccount();
         return UserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
                 .phone(user.getPhone())
                 .fullName(user.getFullName())
                 .storeName(user.getStoreName())
-                .onboardingCompleted(user.getOnboardingCompleted())
+                .onboardingCompleted(staffAccount != null ? staffAccount.getOnboardingCompleted() : true)
                 .role(user.getRole().name())
                 .status(user.getStatus().name())
-                .salaryType(user.getSalaryType())
-                .salaryAmount(user.getSalaryAmount())
+                .salaryType(staffAccount != null ? staffAccount.getSalaryType() : null)
+                .salaryAmount(staffAccount != null ? staffAccount.getSalaryAmount() : null)
                 .storeId(assignedStore != null ? assignedStore.getId() : null)
                 .storeAddress(assignedStore != null ? assignedStore.getAddress() : null)
-                .generatedPassword(generatedPassword != null ? generatedPassword : user.getTemporaryPassword())
+                .generatedPassword(generatedPassword != null ? generatedPassword : (staffAccount != null ? staffAccount.getTemporaryPassword() : null))
                 .createdAt(user.getCreatedAt())
                 .build();
     }

@@ -181,13 +181,16 @@ const OwnerCategories = () => {
                             ))}
                         </select>
                     </div>
-                    <Input
-                        label="Tên danh mục *"
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                    />
+                    <div className="form-group">
+                        <label>Tên danh mục *</label>
+                        <Input
+                            type="text"
+                            placeholder="vd: Đồ uống, Đồ ăn,..."
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            required
+                        />
+                    </div>
                     <div className="form-actions">
                         <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
                             Hủy

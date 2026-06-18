@@ -13,7 +13,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import com.smartbiz.backend.enums.Role;
-import com.smartbiz.backend.enums.SalaryType;
 import com.smartbiz.backend.enums.Status;
 
 import java.time.LocalDateTime;
@@ -53,10 +52,6 @@ public class User implements UserDetails {
     @Column(name = "store_name", length = 100)
     private String storeName;
 
-    @Column(name = "onboarding_completed", nullable = false)
-    @Builder.Default
-    private Boolean onboardingCompleted = true;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
@@ -64,16 +59,6 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "salary_type")
-    private SalaryType salaryType;
-
-    @Column(name = "salary_amount", precision = 12, scale = 2)
-    private java.math.BigDecimal salaryAmount;
-
-    @Column(name = "temporary_password", length = 100)
-    private String temporaryPassword;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -92,6 +77,9 @@ public class User implements UserDetails {
     @Builder.Default
     @ToString.Exclude
     private List<StaffShift> staffShifts = new ArrayList<>();
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private StaffAccount staffAccount;
 
     // Two-Factor Authentication fields
     @Column(name = "two_factor_enabled")
@@ -119,9 +107,6 @@ public class User implements UserDetails {
         createdAt = LocalDateTime.now();
         if (status == null) {
             status = Status.ACTIVE;
-        }
-        if (onboardingCompleted == null) {
-            onboardingCompleted = true;
         }
     }
 

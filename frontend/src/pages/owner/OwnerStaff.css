@@ -251,6 +251,14 @@
     font-size: 13px;
 }
 
+.badge-password {
+    display: inline-block;
+    border: 3px solid #ddd;
+    border-radius: 6px;
+    padding: 4px 8px;
+    background-color: #f9f9f9;
+}
+
 .owner-staff-status-toggle {
     display: inline-flex;
     align-items: center;

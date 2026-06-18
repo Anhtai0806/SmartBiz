@@ -25,8 +25,6 @@ CREATE TABLE `users` (
     `store_name` VARCHAR(100),
     `role` VARCHAR(50) NOT NULL,
     `status` VARCHAR(50) NOT NULL,
-    `salary_type` VARCHAR(50),
-    `salary_amount` DECIMAL(12,2),
     `created_at` DATETIME NOT NULL,
     `two_factor_enabled` BOOLEAN DEFAULT FALSE,
     `two_factor_secret` VARCHAR(32),
@@ -35,6 +33,18 @@ CREATE TABLE `users` (
     `failed_login_attempts` INT DEFAULT 0,
     `account_locked_until` DATETIME,
     PRIMARY KEY (`id`)
+);
+
+-- 1a. Create `staff_account` table
+DROP TABLE IF EXISTS `staff_account`;
+CREATE TABLE `staff_account` (
+    `user_id` VARCHAR(36) NOT NULL,
+    `salary_type` VARCHAR(50),
+    `salary_amount` DECIMAL(12,2),
+    `temporary_password` VARCHAR(100),
+    `onboarding_completed` BOOLEAN NOT NULL DEFAULT FALSE,
+    PRIMARY KEY (`user_id`),
+    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 );
 
 -- 2. Create `stores` table

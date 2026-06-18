@@ -143,7 +143,12 @@ const OwnerStaff = () => {
             await loadData();
             handleCloseModal();
         } catch (error) {
-            setErrorMessage(error.message || 'Không thể lưu thông tin nhân viên.');
+            const serverMessage = error.response?.data?.message;
+            if (serverMessage && (serverMessage.includes('already exists') || serverMessage.includes('đã tồn tại'))) {
+                setErrorMessage('Email này đã được sử dụng bởi một tài khoản khác. Vui lòng nhập email khác.');
+            } else {
+                setErrorMessage(serverMessage || error.message || 'Không thể lưu thông tin nhân viên.');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -338,7 +343,9 @@ const OwnerStaff = () => {
                                             </StatusBadge>
                                         </td>
                                         <td className="owner-staff-password">
-                                            {staffMember.generatedPassword || 'Nhân viên đã đổi mật khẩu'}
+                                            <span class="badge-password">
+                                                {staffMember.generatedPassword || 'Nhân viên đã đổi mật khẩu'}
+                                            </span>
                                         </td>
                                         <td className="is-right">
                                             <div className="owner-staff-actions">

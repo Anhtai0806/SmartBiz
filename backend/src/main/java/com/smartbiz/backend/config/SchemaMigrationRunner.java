@@ -17,14 +17,16 @@ public class SchemaMigrationRunner implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         ensureUsersStoreNameColumn();
-        ensureUsersOnboardingCompletedColumn();
-        ensureUsersTemporaryPasswordColumn();
         ensureStoresBranchNameColumn();
         ensurePendingRegistrationsStoreNameColumn();
         backfillUsersStoreName();
         backfillStoresBranchName();
-        backfillUsersOnboardingCompleted();
         backfillPendingRegistrationsStoreName();
+        
+        ensureStaffAccountTable();
+        migrateExistingStaffData();
+        dropLegacyUsersStaffColumns();
+
         dropLegacyStoresNameColumn();
     }
 
@@ -148,10 +150,62 @@ public class SchemaMigrationRunner implements ApplicationRunner {
     private boolean columnExists(String tableName, String columnName) {
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM information_schema.columns " +
-                        "WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?",
+                "WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?",
                 Integer.class,
                 tableName,
                 columnName);
         return count != null && count > 0;
+    }
+
+    private void ensureStaffAccountTable() {
+        if (!tableExists("staff_account")) {
+            jdbcTemplate.execute(
+                "CREATE TABLE staff_account (" +
+                "  user_id VARCHAR(36) NOT NULL," +
+                "  salary_type VARCHAR(50) NULL," +
+                "  salary_amount DECIMAL(12,2) NULL," +
+                "  temporary_password VARCHAR(100) NULL," +
+                "  onboarding_completed BIT(1) NOT NULL DEFAULT b'0'," +
+                "  PRIMARY KEY (user_id)," +
+                "  CONSTRAINT fk_staff_account_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE" +
+                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+            );
+            log.info("Created table staff_account");
+        }
+    }
+
+    private void migrateExistingStaffData() {
+        if (columnExists("users", "salary_type") || columnExists("users", "salary_amount") ||
+            columnExists("users", "temporary_password") || columnExists("users", "onboarding_completed")) {
+            
+            log.info("Migrating existing staff data to staff_account table...");
+            jdbcTemplate.execute(
+                "INSERT INTO staff_account (user_id, salary_type, salary_amount, temporary_password, onboarding_completed) " +
+                "SELECT u.id, u.salary_type, u.salary_amount, u.temporary_password, COALESCE(u.onboarding_completed, b'1') " +
+                "FROM users u " +
+                "LEFT JOIN staff_account sa ON u.id = sa.user_id " +
+                "WHERE u.role IN ('STAFF', 'CASHIER', 'KITCHEN') AND sa.user_id IS NULL"
+            );
+            log.info("Finished migrating staff data.");
+        }
+    }
+
+    private void dropLegacyUsersStaffColumns() {
+        if (columnExists("users", "salary_type")) {
+            jdbcTemplate.execute("ALTER TABLE users DROP COLUMN salary_type");
+            log.info("Dropped column users.salary_type");
+        }
+        if (columnExists("users", "salary_amount")) {
+            jdbcTemplate.execute("ALTER TABLE users DROP COLUMN salary_amount");
+            log.info("Dropped column users.salary_amount");
+        }
+        if (columnExists("users", "temporary_password")) {
+            jdbcTemplate.execute("ALTER TABLE users DROP COLUMN temporary_password");
+            log.info("Dropped column users.temporary_password");
+        }
+        if (columnExists("users", "onboarding_completed")) {
+            jdbcTemplate.execute("ALTER TABLE users DROP COLUMN onboarding_completed");
+            log.info("Dropped column users.onboarding_completed");
+        }
     }
 }

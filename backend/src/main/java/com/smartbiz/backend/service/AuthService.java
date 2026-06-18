@@ -13,6 +13,8 @@ import com.smartbiz.backend.dto.UserResponse;
 import com.smartbiz.backend.entity.PendingRegistration;
 import com.smartbiz.backend.entity.Store;
 import com.smartbiz.backend.entity.User;
+import com.smartbiz.backend.entity.StaffAccount;
+import com.smartbiz.backend.enums.SalaryType;
 import com.smartbiz.backend.enums.Role;
 import com.smartbiz.backend.enums.Status;
 import com.smartbiz.backend.exception.EmailOrPhoneAlreadyExistsException;
@@ -221,7 +223,7 @@ public class AuthService {
                                 .phone(updatedUser.getPhone())
                                 .fullName(updatedUser.getFullName())
                                 .storeName(updatedUser.getStoreName())
-                                .onboardingCompleted(updatedUser.getOnboardingCompleted())
+                                .onboardingCompleted(updatedUser.getStaffAccount() != null ? updatedUser.getStaffAccount().getOnboardingCompleted() : true)
                                 .role(updatedUser.getRole().name())
                                 .status(updatedUser.getStatus().name())
                                 .storeId(resolveAssignedStoreId(updatedUser))
@@ -249,7 +251,9 @@ public class AuthService {
                 }
 
                 user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-                user.setTemporaryPassword(null);
+                if (user.getStaffAccount() != null) {
+                        user.getStaffAccount().setTemporaryPassword(null);
+                }
                 userRepository.save(user);
         }
 
@@ -271,8 +275,10 @@ public class AuthService {
                 user.setFullName(request.getFullName());
                 user.setPhone(requestedPhone);
                 user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-                user.setOnboardingCompleted(true);
-                user.setTemporaryPassword(null);
+                if (user.getStaffAccount() != null) {
+                        user.getStaffAccount().setOnboardingCompleted(true);
+                        user.getStaffAccount().setTemporaryPassword(null);
+                }
 
                 User updatedUser = userRepository.save(user);
                 return buildUserResponse(updatedUser, null);
@@ -290,7 +296,7 @@ public class AuthService {
                                 .email(user.getEmail())
                                 .fullName(user.getFullName())
                                 .storeName(user.getStoreName())
-                                .onboardingCompleted(user.getOnboardingCompleted())
+                                .onboardingCompleted(user.getStaffAccount() != null ? user.getStaffAccount().getOnboardingCompleted() : true)
                                 .role(user.getRole().name())
                                 .status(user.getStatus().name())
                                 .storeId(storeId)
@@ -323,14 +329,14 @@ public class AuthService {
                                 .phone(user.getPhone())
                                 .fullName(user.getFullName())
                                 .storeName(user.getStoreName())
-                                .onboardingCompleted(user.getOnboardingCompleted())
+                                .onboardingCompleted(user.getStaffAccount() != null ? user.getStaffAccount().getOnboardingCompleted() : true)
                                 .role(user.getRole().name())
                                 .status(user.getStatus().name())
-                                .salaryType(user.getSalaryType())
-                                .salaryAmount(user.getSalaryAmount())
+                                .salaryType(user.getStaffAccount() != null ? user.getStaffAccount().getSalaryType() : null)
+                                .salaryAmount(user.getStaffAccount() != null ? user.getStaffAccount().getSalaryAmount() : null)
                                 .storeId(resolveAssignedStoreId(user))
                                 .storeAddress(resolveAssignedStoreAddress(user))
-                                .generatedPassword(generatedPassword != null ? generatedPassword : user.getTemporaryPassword())
+                                .generatedPassword(generatedPassword != null ? generatedPassword : (user.getStaffAccount() != null ? user.getStaffAccount().getTemporaryPassword() : null))
                                 .createdAt(user.getCreatedAt())
                                 .build();
         }
